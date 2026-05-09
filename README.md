@@ -6,8 +6,6 @@ All in One App/Website(TBD) for Students and Individuals Alike
 
 Contains -   
 * Notepad(for text editor)
-*
-* Calculator
 * Gemini API included for chatbot
 * College Planner
 * Notes (Google Drive Integration)
