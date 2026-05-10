@@ -1,0 +1,570 @@
+/* ============================================================
+   pomodoro.css — Pomodoro Timer Styles
+   Project Green
+   ============================================================ */
+
+/* ── Font Stack ──
+   We use the OS system font stack so the app works 100% offline.
+   On Linux this resolves to Ubuntu/Noto Sans; on Windows to Segoe UI.
+   The monospace stack gives us a clean digital-clock look for the timer.
+── */
+
+/* ── CSS Custom Properties (easy to tweak!) ── */
+:root {
+  /* Colors */
+  --bg-primary:       #0d1117;
+  --bg-secondary:     #161b22;
+  --bg-card:          rgba(22, 27, 34, 0.85);
+  --glass-border:     rgba(255, 255, 255, 0.08);
+  --glass-shadow:     0 8px 32px rgba(0, 0, 0, 0.4);
+
+  /* Accent — "focus" mode (work) */
+  --accent-work:      #4ade80;    /* green */
+  --accent-work-dim:  #166534;
+  --accent-work-glow: rgba(74, 222, 128, 0.25);
+
+  /* Accent — "short break" mode */
+  --accent-break:     #60a5fa;    /* blue */
+  --accent-break-dim: #1e3a5f;
+  --accent-break-glow:rgba(96, 165, 250, 0.25);
+
+  /* Accent — "long break" mode */
+  --accent-long:      #f472b6;    /* pink */
+  --accent-long-dim:  #5b1a37;
+  --accent-long-glow: rgba(244, 114, 182, 0.25);
+
+  /* Typography */
+  --text-primary:     #f0f6fc;
+  --text-secondary:   #8b949e;
+  --text-muted:       #484f58;
+
+  /* Spacing */
+  --radius-sm:        8px;
+  --radius-md:        16px;
+  --radius-lg:        24px;
+  --radius-pill:      999px;
+
+  /* Transitions */
+  --transition-fast:  0.15s ease;
+  --transition-mid:   0.3s ease;
+  --transition-slow:  0.6s ease;
+
+  /* Timer ring size */
+  --ring-size:        280px;
+  --ring-stroke:      12;
+}
+
+/* ── Reset & Base ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  font-family: system-ui, -apple-system, 'Segoe UI', Ubuntu, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* ── Animated Background Blobs ── */
+.bg-blob {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.12;
+  pointer-events: none;
+  z-index: 0;
+  animation: blobFloat 12s ease-in-out infinite alternate;
+}
+.bg-blob-1 {
+  width: 500px; height: 500px;
+  background: var(--accent-work);
+  top: -150px; left: -150px;
+  animation-delay: 0s;
+}
+.bg-blob-2 {
+  width: 400px; height: 400px;
+  background: var(--accent-break);
+  bottom: -100px; right: -100px;
+  animation-delay: -4s;
+}
+.bg-blob-3 {
+  width: 300px; height: 300px;
+  background: var(--accent-long);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  animation-delay: -8s;
+}
+@keyframes blobFloat {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(20px, 20px) scale(1.05); }
+}
+.bg-blob-3 {
+  animation-name: blobFloat3;
+}
+@keyframes blobFloat3 {
+  from { transform: translate(-50%, -50%) scale(1); }
+  to   { transform: translate(-48%, -52%) scale(1.1); }
+}
+
+/* ── App Wrapper ── */
+.app {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 520px;
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+/* ── App Title ── */
+.app-title {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.app-title span {
+  color: var(--accent-work);
+}
+
+/* ── Mode Selector Tabs ── */
+.mode-tabs {
+  display: flex;
+  background: var(--bg-secondary);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-pill);
+  padding: 4px;
+  gap: 2px;
+  width: 100%;
+}
+
+.mode-tab {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: system-ui, -apple-system, 'Segoe UI', Ubuntu, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
+  white-space: nowrap;
+  text-align: center;
+}
+.mode-tab:hover {
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.05);
+}
+.mode-tab.active[data-mode="work"] {
+  background: var(--accent-work-dim);
+  color: var(--accent-work);
+  box-shadow: 0 0 12px var(--accent-work-glow);
+}
+.mode-tab.active[data-mode="short"] {
+  background: var(--accent-break-dim);
+  color: var(--accent-break);
+  box-shadow: 0 0 12px var(--accent-break-glow);
+}
+.mode-tab.active[data-mode="long"] {
+  background: var(--accent-long-dim);
+  color: var(--accent-long);
+  box-shadow: 0 0 12px var(--accent-long-glow);
+}
+
+/* ── Timer Card ── */
+.timer-card {
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 40px 32px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+}
+
+/* ── SVG Ring Timer ── */
+.ring-wrapper {
+  position: relative;
+  width: var(--ring-size);
+  height: var(--ring-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ring-svg {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  transform: rotate(-90deg);
+}
+
+/* Background track */
+.ring-track {
+  fill: none;
+  stroke: rgba(255,255,255,0.05);
+  stroke-width: var(--ring-stroke);
+}
+
+/* Progress arc */
+.ring-progress {
+  fill: none;
+  stroke: var(--accent-work);
+  stroke-width: var(--ring-stroke);
+  stroke-linecap: round;
+  /* circumference set via JS */
+  stroke-dasharray: 0;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 1s linear, stroke var(--transition-mid);
+  filter: drop-shadow(0 0 8px var(--accent-work-glow));
+}
+
+/* Timer display in center */
+.timer-display {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+}
+
+.timer-time {
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', 'Liberation Mono', monospace;
+  font-size: 68px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-primary);
+  letter-spacing: -2px;
+  transition: color var(--transition-mid);
+}
+
+.timer-label {
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  transition: color var(--transition-mid);
+}
+
+/* ── Session Dots ── */
+.session-dots {
+  display: flex;
+  gap: 8px;
+  margin-top: -8px;
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: background var(--transition-mid), transform var(--transition-fast);
+}
+.dot.completed {
+  background: var(--accent-work);
+  transform: scale(1.2);
+}
+
+/* ── Control Buttons ── */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.btn-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-border);
+  background: rgba(255,255,255,0.04);
+  color: var(--text-secondary);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-fast), color var(--transition-fast), transform var(--transition-fast), border-color var(--transition-fast);
+}
+.btn-icon:hover {
+  background: rgba(255,255,255,0.1);
+  color: var(--text-primary);
+  transform: scale(1.08);
+}
+.btn-icon:active {
+  transform: scale(0.95);
+}
+
+.btn-primary {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: none;
+  font-size: 28px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-mid);
+  background: var(--accent-work);
+  color: #0d1117;
+  box-shadow: 0 0 20px var(--accent-work-glow), 0 4px 16px rgba(0,0,0,0.3);
+}
+.btn-primary:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 30px var(--accent-work-glow), 0 4px 20px rgba(0,0,0,0.4);
+}
+.btn-primary:active {
+  transform: scale(0.96);
+}
+
+/* ── Mode-aware color changes ── */
+body.mode-work   .ring-progress { stroke: var(--accent-work); filter: drop-shadow(0 0 8px var(--accent-work-glow)); }
+body.mode-short  .ring-progress { stroke: var(--accent-break); filter: drop-shadow(0 0 8px var(--accent-break-glow)); }
+body.mode-long   .ring-progress { stroke: var(--accent-long); filter: drop-shadow(0 0 8px var(--accent-long-glow)); }
+
+body.mode-work   .btn-primary { background: var(--accent-work); box-shadow: 0 0 20px var(--accent-work-glow), 0 4px 16px rgba(0,0,0,0.3); }
+body.mode-short  .btn-primary { background: var(--accent-break); box-shadow: 0 0 20px var(--accent-break-glow), 0 4px 16px rgba(0,0,0,0.3); }
+body.mode-long   .btn-primary { background: var(--accent-long); box-shadow: 0 0 20px var(--accent-long-glow), 0 4px 16px rgba(0,0,0,0.3); }
+
+body.mode-work   .btn-primary:hover { box-shadow: 0 0 32px var(--accent-work-glow), 0 4px 20px rgba(0,0,0,0.4); }
+body.mode-short  .btn-primary:hover { box-shadow: 0 0 32px var(--accent-break-glow), 0 4px 20px rgba(0,0,0,0.4); }
+body.mode-long   .btn-primary:hover { box-shadow: 0 0 32px var(--accent-long-glow), 0 4px 20px rgba(0,0,0,0.4); }
+
+/* ── Settings Panel ── */
+.settings-card {
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  overflow: hidden;
+  transition: max-height var(--transition-slow), opacity var(--transition-mid);
+  max-height: 0;
+  opacity: 0;
+}
+.settings-card.open {
+  max-height: 600px;
+  opacity: 1;
+}
+.settings-inner {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.settings-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--glass-border);
+  padding-bottom: 12px;
+}
+
+/* Preset selector */
+.preset-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.preset-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.preset-buttons {
+  display: flex;
+  gap: 8px;
+}
+.preset-btn {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.03);
+  color: var(--text-secondary);
+  font-family: system-ui, -apple-system, 'Segoe UI', Ubuntu, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: center;
+}
+.preset-btn:hover {
+  background: rgba(255,255,255,0.08);
+  color: var(--text-primary);
+  border-color: rgba(255,255,255,0.15);
+}
+.preset-btn.active {
+  background: var(--accent-work-dim);
+  color: var(--accent-work);
+  border-color: var(--accent-work);
+}
+
+/* Duration sliders */
+.duration-group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.duration-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.duration-row-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.duration-row-header label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+.duration-value {
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', 'Liberation Mono', monospace;
+  font-size: 13px;
+  color: var(--accent-work);
+  font-weight: 600;
+  min-width: 50px;
+  text-align: right;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--text-muted);
+  outline: none;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent-work);
+  box-shadow: 0 0 8px var(--accent-work-glow);
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+/* Toggle for sound */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.toggle-row label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+.toggle {
+  position: relative;
+  width: 40px;
+  height: 22px;
+}
+.toggle input {
+  opacity: 0;
+  width: 0; height: 0;
+}
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: var(--text-muted);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: white;
+  left: 3px; top: 3px;
+  transition: transform var(--transition-fast);
+}
+.toggle input:checked + .toggle-slider {
+  background: var(--accent-work);
+}
+.toggle input:checked + .toggle-slider::before {
+  transform: translateX(18px);
+}
+
+/* ── Footer ── */
+.footer {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+  padding-bottom: 8px;
+}
+
+/* ── Notification pulse animation ── */
+@keyframes pulsePrimary {
+  0%, 100% { box-shadow: 0 0 20px var(--accent-work-glow), 0 4px 16px rgba(0,0,0,0.3); }
+  50%       { box-shadow: 0 0 50px var(--accent-work-glow), 0 4px 24px rgba(0,0,0,0.5); }
+}
+body.mode-work .btn-primary.pulsing {
+  animation: pulsePrimary 1.5s ease-in-out infinite;
+}
+
+/* ── Completed flash ── */
+@keyframes flashComplete {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+.timer-time.flash {
+  animation: flashComplete 0.4s ease-in-out 3;
+}
+
+/* ── Responsive ── */
+@media (max-width: 480px) {
+  :root {
+    --ring-size: 220px;
+  }
+  .timer-time {
+    font-size: 52px;
+  }
+  .timer-card {
+    padding: 28px 20px 24px;
+    gap: 24px;
+  }
+}

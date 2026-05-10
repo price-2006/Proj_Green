@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- SEO / Meta -->
+  <title>Pomodoro Timer — Project Green</title>
+  <meta name="description" content="A clean, focused Pomodoro timer with work sessions, short breaks, and long breaks. Part of Project Green." />
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="pomodoro.css" />
+</head>
+<body class="mode-work">
+
+  <!-- Decorative background blobs (pure CSS animation) -->
+  <div class="bg-blob bg-blob-1" aria-hidden="true"></div>
+  <div class="bg-blob bg-blob-2" aria-hidden="true"></div>
+  <div class="bg-blob bg-blob-3" aria-hidden="true"></div>
+
+  <!-- ════════════════════════════════════════════
+       MAIN APP
+  ════════════════════════════════════════════ -->
+  <main class="app" role="main">
+
+    <!-- App title -->
+    <p class="app-title">Project <span>Green</span> · Pomodoro</p>
+
+    <!-- ── Mode selector tabs ── -->
+    <!--
+      Each button has data-mode="" so our JS knows which mode to switch to.
+      The JS adds the .active class to the current one.
+    -->
+    <nav class="mode-tabs" role="tablist" aria-label="Timer mode">
+      <button class="mode-tab active" data-mode="work"  role="tab" aria-selected="true"  id="tab-work">Focus</button>
+      <button class="mode-tab"        data-mode="short" role="tab" aria-selected="false" id="tab-short">Short Break</button>
+      <button class="mode-tab"        data-mode="long"  role="tab" aria-selected="false" id="tab-long">Long Break</button>
+    </nav>
+
+    <!-- ── Timer card ── -->
+    <section class="timer-card" aria-label="Timer">
+
+      <!-- SVG ring + time display -->
+      <div class="ring-wrapper" aria-live="polite" aria-label="Timer countdown">
+
+        <!--
+          SVG RING EXPLAINED:
+          - viewBox="0 0 280 280" means the canvas is 280×280 units
+          - The circle is centered at (140,140) with radius 120
+          - We rotate it -90deg with CSS so progress starts at the top
+          - stroke-dasharray controls how the dashes are drawn
+          - stroke-dashoffset controls where the drawing "stops"
+          - JS calculates these values to animate the ring
+        -->
+        <svg class="ring-svg" viewBox="0 0 280 280" aria-hidden="true">
+          <!-- Background track (always full circle) -->
+          <circle
+            class="ring-track"
+            cx="140" cy="140" r="120"
+          />
+          <!-- Progress arc (JS changes stroke-dashoffset) -->
+          <circle
+            class="ring-progress"
+            id="ring-progress"
+            cx="140" cy="140" r="120"
+          />
+        </svg>
+
+        <!-- Time and label in the center -->
+        <div class="timer-display">
+          <div class="timer-time" id="timer-time">25:00</div>
+          <div class="timer-label" id="timer-label">Focus Time</div>
+        </div>
+      </div>
+
+      <!-- Session completion dots -->
+      <!--
+        4 dots = 4 work sessions before a long break.
+        Green dots = completed sessions. JS renders these dynamically.
+      -->
+      <div class="session-dots" id="session-dots" aria-label="Sessions completed this cycle"></div>
+
+      <!-- Playback controls -->
+      <div class="controls" role="group" aria-label="Timer controls">
+
+        <!-- Reset button -->
+        <button class="btn-icon" id="btn-reset" aria-label="Reset timer" title="Reset (R)">
+          ↺
+        </button>
+
+        <!-- Play / Pause (main button) -->
+        <button class="btn-primary" id="btn-play-pause" aria-label="Play or pause timer" title="Play / Pause (Space)">
+          <span id="btn-play-icon">▶</span>
+        </button>
+
+        <!-- Skip to next session -->
+        <button class="btn-icon" id="btn-skip" aria-label="Skip to next session" title="Skip session">
+          ⏭
+        </button>
+
+      </div>
+    </section>
+
+    <!-- ── Settings toggle ── -->
+    <button class="btn-icon" id="btn-settings" aria-label="Open settings" aria-expanded="false" title="Settings (S)" style="align-self: flex-end;">
+      ⚙
+    </button>
+
+    <!-- ── Settings panel ── -->
+    <!--
+      This panel slides in/out via CSS max-height transition.
+      The .open class is toggled by JS when the gear button is clicked.
+    -->
+    <section class="settings-card" id="settings-card" aria-label="Timer settings">
+      <div class="settings-inner">
+
+        <h2 class="settings-title">Settings</h2>
+
+        <!-- Preset buttons -->
+        <div class="preset-group">
+          <p class="preset-label">Quick Presets</p>
+          <div class="preset-buttons">
+            <!--
+              data-preset matches the keys in the PRESETS object in pomodoro.js.
+              To add a new preset: add it to the PRESETS object and add a button here.
+            -->
+            <button class="preset-btn active" data-preset="classic" id="preset-classic">Classic<br>25/5</button>
+            <button class="preset-btn"        data-preset="long50"  id="preset-long50">Deep Work<br>50/10</button>
+            <button class="preset-btn"        data-preset="long45"  id="preset-long45">Extended<br>45/8</button>
+          </div>
+        </div>
+
+        <!-- Duration sliders -->
+        <div class="duration-group">
+
+          <!-- Work duration -->
+          <div class="duration-row">
+            <div class="duration-row-header">
+              <label for="range-work">Focus Duration</label>
+              <span class="duration-value" id="val-work">25 min</span>
+            </div>
+            <!--
+              min/max define the slider range.
+              step="1" means whole minutes only.
+              JS reads .value from this slider.
+            -->
+            <input type="range" id="range-work" min="5" max="90" step="1" value="25"
+                   aria-label="Focus duration in minutes" />
+          </div>
+
+          <!-- Short break duration -->
+          <div class="duration-row">
+            <div class="duration-row-header">
+              <label for="range-short">Short Break</label>
+              <span class="duration-value" id="val-short">5 min</span>
+            </div>
+            <input type="range" id="range-short" min="1" max="30" step="1" value="5"
+                   aria-label="Short break duration in minutes" />
+          </div>
+
+          <!-- Long break duration -->
+          <div class="duration-row">
+            <div class="duration-row-header">
+              <label for="range-long">Long Break</label>
+              <span class="duration-value" id="val-long">15 min</span>
+            </div>
+            <input type="range" id="range-long" min="5" max="45" step="1" value="15"
+                   aria-label="Long break duration in minutes" />
+          </div>
+
+        </div>
+
+        <!-- Sound toggle -->
+        <div class="toggle-row">
+          <label for="toggle-sound">Alert Sound</label>
+          <label class="toggle">
+            <input type="checkbox" id="toggle-sound" checked aria-label="Enable alert sound" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <p class="footer">
+      Space to play/pause · R to reset · S for settings
+    </p>
+
+  </main>
+
+  <!-- JavaScript (loaded at end of body so DOM is ready) -->
+  <script src="pomodoro.js"></script>
+
+</body>
+</html>
