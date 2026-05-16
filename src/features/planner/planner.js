@@ -116,6 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const notesInput = document.getElementById('task-notes');
   const modalTitle = document.getElementById('modal-title');
   const colorDots  = document.querySelectorAll('.color-dot');
+  const deleteBtn  = document.getElementById('btn-modal-delete');
 
   function openModal(date, hour, taskId = null) {
     editingId = taskId;
@@ -130,6 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
       endInput.value   = t.end;
       notesInput.value = t.notes || '';
       selectedColor = t.color;
+      deleteBtn?.classList.remove('hidden');
     } else {
       titleInput.value = '';
       dateInput.value  = date;
@@ -137,6 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
       endInput.value   = `${String(hour+1).padStart(2,'0')}:00`;
       notesInput.value = '';
       selectedColor = COLORS[0];
+      deleteBtn?.classList.add('hidden');
     }
 
     colorDots.forEach(d => d.classList.toggle('active', d.dataset.color === selectedColor));
@@ -176,6 +179,15 @@ document.addEventListener('DOMContentLoaded', () => {
     saveTasks();
     closeModal();
     renderGrid();
+  });
+
+  document.getElementById('btn-modal-delete')?.addEventListener('click', () => {
+    if (editingId && confirm('Delete this task?')) {
+      tasks = tasks.filter(t => t.id !== editingId);
+      saveTasks();
+      closeModal();
+      renderGrid();
+    }
   });
 
   // Delete on 'Delete' key when modal is open

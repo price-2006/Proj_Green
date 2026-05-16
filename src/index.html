@@ -261,7 +261,8 @@
               <input type="text" id="task-notes" placeholder="e.g. Chapter 3-5"/>
             </div>
           </div>
-          <div class="modal-actions">
+          <div class="modal-actions" style="display: flex; gap: 8px;">
+            <button class="pill-btn danger hidden" id="btn-modal-delete" style="margin-right: auto;">Delete</button>
             <button class="pill-btn" id="btn-modal-cancel">Cancel</button>
             <button class="pill-btn primary" id="btn-modal-save">Save Task</button>
           </div>
@@ -305,6 +306,17 @@
         </div>
         <div id="drive-breadcrumb"><span>My Drive</span></div>
         <div id="drive-file-list" role="list" aria-label="Drive files"></div>
+      </div>
+      
+      <!-- PDF Viewer Overlay -->
+      <div id="pdf-viewer-overlay" class="modal-overlay hidden" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 100;">
+        <div class="modal glass-card" style="width: 90%; height: 90%; max-width: 1200px; padding: 20px; display: flex; flex-direction: column;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h2 id="pdf-viewer-title" style="margin: 0; font-size: 1.2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Document</h2>
+            <button class="pill-btn danger" id="btn-close-pdf">Close</button>
+          </div>
+          <iframe id="pdf-iframe" style="flex: 1; border: none; border-radius: 8px; background: #fff;"></iframe>
+        </div>
       </div>
     </section>
 

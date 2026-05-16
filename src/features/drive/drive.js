@@ -32,6 +32,7 @@ let currentFiles = [];
 let searchQuery  = '';
 let currentFolderId = 'root';
 let breadcrumbPath = [{ id: 'root', name: 'My Drive' }];
+let objectUrlToRevoke = null;
 
 // ── DOM refs ──────────────────────────────────────────────
 const authView   = document.getElementById('drive-auth-view');
@@ -169,6 +170,42 @@ async function apiGet(path, params = {}) {
   return res.json();
 }
 
+async function openPdf(f) {
+  const overlay = document.getElementById('pdf-viewer-overlay');
+  const iframe = document.getElementById('pdf-iframe');
+  const title = document.getElementById('pdf-viewer-title');
+  
+  if (objectUrlToRevoke) {
+    URL.revokeObjectURL(objectUrlToRevoke);
+    objectUrlToRevoke = null;
+  }
+  
+  overlay.classList.remove('hidden');
+  title.textContent = f.name;
+  iframe.src = '';
+  
+  setStatus('Downloading PDF...');
+  
+  try {
+    const url = `${DRIVE_API_URL}/files/${f.id}?alt=media`;
+    let res = await fetch(url, { headers: { Authorization: `Bearer ${driveToken.access_token}` } });
+    if (res.status === 401) {
+      await refreshAccessToken();
+      res = await fetch(url, { headers: { Authorization: `Bearer ${driveToken.access_token}` } });
+    }
+    if (!res.ok) throw new Error(`Drive API error: ${res.status}`);
+    
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    objectUrlToRevoke = objectUrl;
+    iframe.src = objectUrl;
+    setStatus('Connected to Google Drive');
+  } catch (err) {
+    setStatus(`Failed to load PDF: ${err.message}`, true);
+    overlay.classList.add('hidden');
+  }
+}
+
 // ── File listing ──────────────────────────────────────────
 async function loadFiles(folderId = 'root') {
   currentFolderId = folderId;
@@ -216,6 +253,9 @@ function renderFiles() {
         renderBreadcrumbs();
         loadFiles(f.id);
       });
+    } else if (f.mimeType === 'application/pdf') {
+      item.addEventListener('click', () => openPdf(f));
+      item.title = `View ${f.name} in app`;
     } else if (f.webViewLink) {
       item.addEventListener('click', () => window.electronAPI?.driveOpenUrl?.(f.webViewLink));
       item.title = `Open ${f.name} in browser`;
@@ -293,6 +333,16 @@ async function init() {
 
   // Search
   searchInput?.addEventListener('input', () => { searchQuery = searchInput.value; renderFiles(); });
+
+  // PDF Viewer Close
+  document.getElementById('btn-close-pdf')?.addEventListener('click', () => {
+    document.getElementById('pdf-viewer-overlay')?.classList.add('hidden');
+    if (objectUrlToRevoke) {
+      URL.revokeObjectURL(objectUrlToRevoke);
+      objectUrlToRevoke = null;
+    }
+    document.getElementById('pdf-iframe').src = '';
+  });
 
   // Setup guide link
   document.getElementById('drive-setup-link')?.addEventListener('click', e => {
