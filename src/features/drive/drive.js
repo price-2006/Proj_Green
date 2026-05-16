@@ -33,6 +33,8 @@ let searchQuery  = '';
 let currentFolderId = 'root';
 let breadcrumbPath = [{ id: 'root', name: 'My Drive' }];
 let objectUrlToRevoke = null;
+let pdfCurrentZoom = 1.0;
+let pdfProgressObserver = null; // MutationObserver for the progress bar
 
 // ── DOM refs ──────────────────────────────────────────────
 const authView   = document.getElementById('drive-auth-view');
@@ -173,16 +175,65 @@ async function apiGet(path, params = {}) {
 async function openPdf(f) {
   const overlay = document.getElementById('pdf-viewer-overlay');
   const iframe = document.getElementById('pdf-iframe');
-  const title = document.getElementById('pdf-viewer-title');
+  const pomoBody = document.getElementById('pomo-body');
+  const timerContainer = document.getElementById('pdf-timer-container');
   
   if (objectUrlToRevoke) {
     URL.revokeObjectURL(objectUrlToRevoke);
     objectUrlToRevoke = null;
   }
   
+  if (pomoBody && timerContainer) {
+    timerContainer.appendChild(pomoBody);
+  }
+  
+  // Inject the pill progress bar into .timer-display if not already there
+  setTimeout(() => {
+    const timerDisplay = timerContainer.querySelector('.timer-display');
+    if (timerDisplay && !timerDisplay.querySelector('.pdf-progress-track')) {
+      const track = document.createElement('div');
+      track.className = 'pdf-progress-track';
+      const fill = document.createElement('div');
+      fill.className = 'pdf-progress-fill';
+      track.appendChild(fill);
+      timerDisplay.appendChild(track);
+    }
+    
+    // Sync --pomo-pct from the ring's dashoffset or timer-time text
+    const syncProgress = () => {
+      const ring = timerContainer.querySelector('.ring-progress');
+      if (ring && ring._c) {
+        const offset = parseFloat(ring.style.strokeDashoffset) || 0;
+        const pct = ring._c > 0 ? Math.max(0, 1 - offset / ring._c) : 1;
+        timerContainer.style.setProperty('--pomo-pct', (pct * 100).toFixed(2) + '%');
+        
+        // Also tint the fill based on timer mode
+        const fill = timerContainer.querySelector('.pdf-progress-fill');
+        if (fill) {
+          const mode = timerContainer.querySelector('.mode-tab.active')?.dataset?.mode;
+          const colors = { work: '#30d158', short: '#0a84ff', long: '#bf5af2' };
+          fill.style.background = colors[mode] || 'var(--accent)';
+          fill.style.boxShadow = `0 0 8px ${colors[mode] || 'var(--accent-glow)'}66`;
+        }
+      }
+    };
+    
+    // Disconnect any old observer
+    if (pdfProgressObserver) pdfProgressObserver.disconnect();
+    
+    // Watch the ring-progress element's style attribute for changes
+    const ringEl = timerContainer.querySelector('.ring-progress');
+    if (ringEl) {
+      pdfProgressObserver = new MutationObserver(syncProgress);
+      pdfProgressObserver.observe(ringEl, { attributes: true, attributeFilter: ['style'] });
+      syncProgress(); // initial sync
+    }
+  }, 100);
+  
+  pdfCurrentZoom = 1.0;
   overlay.classList.remove('hidden');
-  title.textContent = f.name;
   iframe.src = '';
+  iframe.style.zoom = '';
   
   setStatus('Downloading PDF...');
   
@@ -198,7 +249,7 @@ async function openPdf(f) {
     const blob = await res.blob();
     const objectUrl = URL.createObjectURL(blob);
     objectUrlToRevoke = objectUrl;
-    iframe.src = objectUrl;
+    iframe.src = objectUrl + '#toolbar=1&navpanes=0';
     setStatus('Connected to Google Drive');
   } catch (err) {
     setStatus(`Failed to load PDF: ${err.message}`, true);
@@ -341,7 +392,49 @@ async function init() {
       URL.revokeObjectURL(objectUrlToRevoke);
       objectUrlToRevoke = null;
     }
-    document.getElementById('pdf-iframe').src = '';
+    const iframe = document.getElementById('pdf-iframe');
+    iframe.src = '';
+    iframe.style.zoom = '';
+    
+    // Teleport pomo-body back to its original panel
+    const pomoBody = document.getElementById('pomo-body');
+    const panelPomodoro = document.getElementById('panel-pomodoro');
+    if (pomoBody && panelPomodoro) {
+      panelPomodoro.appendChild(pomoBody);
+    }
+  });
+
+  // PDF Navigation — prev / next page via postMessage to PDF viewer
+  document.getElementById('btn-pdf-prev')?.addEventListener('click', () => {
+    const iframe = document.getElementById('pdf-iframe');
+    try { iframe.contentWindow.postMessage('previousPage', '*'); } catch(e) {}
+    // Chromium PDF viewer also responds to keyboard events sent directly
+    iframe.focus();
+    iframe.contentWindow?.dispatchEvent(new KeyboardEvent('keydown', { key: 'PageUp', bubbles: true }));
+  });
+
+  document.getElementById('btn-pdf-next')?.addEventListener('click', () => {
+    const iframe = document.getElementById('pdf-iframe');
+    try { iframe.contentWindow.postMessage('nextPage', '*'); } catch(e) {}
+    iframe.focus();
+    iframe.contentWindow?.dispatchEvent(new KeyboardEvent('keydown', { key: 'PageDown', bubbles: true }));
+  });
+
+  // PDF Zoom
+  document.getElementById('btn-pdf-zoom-in')?.addEventListener('click', () => {
+    pdfCurrentZoom = Math.min(pdfCurrentZoom + 0.15, 3.0);
+    document.getElementById('pdf-iframe').style.zoom = pdfCurrentZoom;
+  });
+  document.getElementById('btn-pdf-zoom-out')?.addEventListener('click', () => {
+    pdfCurrentZoom = Math.max(pdfCurrentZoom - 0.15, 0.4);
+    document.getElementById('pdf-iframe').style.zoom = pdfCurrentZoom;
+  });
+
+  // Keyboard shortcut: Escape closes PDF viewer
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !document.getElementById('pdf-viewer-overlay')?.classList.contains('hidden')) {
+      document.getElementById('btn-close-pdf')?.click();
+    }
   });
 
   // Setup guide link

@@ -309,13 +309,40 @@
       </div>
       
       <!-- PDF Viewer Overlay -->
-      <div id="pdf-viewer-overlay" class="modal-overlay hidden" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 100;">
-        <div class="modal glass-card" style="width: 90%; height: 90%; max-width: 1200px; padding: 20px; display: flex; flex-direction: column;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h2 id="pdf-viewer-title" style="margin: 0; font-size: 1.2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Document</h2>
-            <button class="pill-btn danger" id="btn-close-pdf">Close</button>
+      <div id="pdf-viewer-overlay" class="modal-overlay hidden" style="position: fixed; top: var(--titlebar-h); left: 0; right: 0; bottom: 0; z-index: 900; background: var(--bg); display: flex;">
+        <div style="display: flex; flex-direction: row; width: 100%; height: 100%; box-sizing: border-box;">
+
+          <!-- Left: PDF column (timer strip + toolbar + iframe) -->
+          <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0;">
+
+            <!-- Pomodoro Timer Strip (ABOVE toolbar) -->
+            <div id="pdf-timer-container" style="flex-shrink: 0; overflow: hidden; border-bottom: 1px solid var(--glass-border); background: rgba(28,28,30,0.97);">
+              <!-- pomo-body teleported here -->
+            </div>
+
+            <!-- PDF Toolbar -->
+            <div style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: var(--glass); border-bottom: 1px solid var(--glass-border); flex-shrink: 0;">
+              <button id="btn-close-pdf" title="Close" style="width:32px;height:32px;border-radius:50%;background:rgba(255,69,58,.15);border:1px solid rgba(255,69,58,.25);color:#ff453a;font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;flex-shrink:0;" onmouseover="this.style.background='rgba(255,69,58,.3)'" onmouseout="this.style.background='rgba(255,69,58,.15)'">✕</button>
+              <div style="flex:1;"></div>
+              <button class="btn-icon small" id="btn-pdf-prev" title="Previous page">‹</button>
+              <button class="btn-icon small" id="btn-pdf-next" title="Next page">›</button>
+            </div>
+
+            <iframe id="pdf-iframe" style="flex: 1; border: none; background: #fff;"></iframe>
           </div>
-          <iframe id="pdf-iframe" style="flex: 1; border: none; border-radius: 8px; background: #fff;"></iframe>
+
+          <!-- Right: Gemini Chatbot Sidebar (placeholder) -->
+          <div id="pdf-chat-sidebar" style="width: 360px; min-width: 360px; max-width: 360px; flex-shrink: 0; display: flex; flex-direction: column; background: var(--glass); border-left: 1px solid var(--glass-border);">
+            <div style="padding: 16px 20px; border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; gap: 8px;">
+              <span style="font-size:16px;">✨</span>
+              <span style="font-size:13px; font-weight:600; color:var(--text);">Gemini Assistant</span>
+            </div>
+            <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; color:var(--text3); font-size:13px; text-align:center; padding:32px;">
+              <span style="font-size:36px;">🤖</span>
+              <span>Gemini chatbot<br>coming soon</span>
+            </div>
+          </div>
+
         </div>
       </div>
     </section>
