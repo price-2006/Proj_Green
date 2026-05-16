@@ -1,188 +1,78 @@
-/**
- * pomodoro.js — Pomodoro Timer Logic
- * Project Green
- *
- * HOW IT WORKS (great for learning!):
- * ─────────────────────────────────────────────────────────────
- * 1. STATE   — one object holds everything the app "knows"
- * 2. RENDER  — functions read state and update the DOM
- * 3. EVENTS  — user actions update state, then call render
- * ─────────────────────────────────────────────────────────────
- *
- * ELECTRON INTEGRATION:
- * ─────────────────────────────────────────────────────────────
- * When running as an Electron desktop app, `window.electronAPI`
- * is injected by electron/preload/preload.js via contextBridge.
- * We use it to send OS desktop notifications when a session ends.
- * The guard `if (window.electronAPI)` means the page still works
- * if you open it directly in a browser (no Electron).
- * ─────────────────────────────────────────────────────────────
- */
-
 'use strict';
+/* pomodoro.js — Timer + Music Player */
 
-/* ══════════════════════════════════════════════════════════
-   1.  PRESETS
-   Each preset defines durations (in minutes) for the three
-   session types. You can add more presets here easily!
-══════════════════════════════════════════════════════════ */
 const PRESETS = {
-  classic: { label: '25 / 5 / 15',  work: 25, short: 5,  long: 15 },
-  long50:  { label: '50 / 10 / 20', work: 50, short: 10, long: 20 },
-  long45:  { label: '45 / 8 / 20',  work: 45, short: 8,  long: 20 },
+  classic: { work: 25, short: 5,  long: 15 },
+  long50:  { work: 50, short: 10, long: 20 },
+  long45:  { work: 45, short: 8,  long: 20 },
 };
 
-/* ══════════════════════════════════════════════════════════
-   2.  APPLICATION STATE
-   Everything the app needs to know lives here.
-══════════════════════════════════════════════════════════ */
 const state = {
-  /* Current timer mode: 'work' | 'short' | 'long' */
-  mode: 'work',
-
-  /* Duration values in MINUTES — user can change these */
-  durations: { ...PRESETS.classic },   // default preset = classic
-
-  /* Timer internals */
-  totalSeconds: 0,      // total seconds for this session
-  remainingSeconds: 0,  // seconds left on the clock
-  isRunning: false,      // is the timer ticking?
-  intervalId: null,      // setInterval handle
-
-  /* Session tracking — how many work sessions done? */
-  sessionsCompleted: 0,
-  sessionsUntilLong: 4, // after this many work sessions → long break
-
-  /* Settings */
-  soundEnabled: true,
-  activePreset: 'classic',
-
-  /* Settings panel open/closed */
-  settingsOpen: false,
+  mode: 'work', durations: { ...PRESETS.classic },
+  totalSeconds: 0, remainingSeconds: 0,
+  isRunning: false, intervalId: null,
+  sessionsCompleted: 0, sessionsUntilLong: 4,
+  soundEnabled: true, activePreset: 'classic',
+  settingsOpen: false, musicOpen: false,
+  // music
+  tracks: [], currentTrack: -1, musicPlaying: false, autoplay: false,
 };
 
-/* ══════════════════════════════════════════════════════════
-   3.  DOM REFERENCES
-   Grab all DOM elements once at startup.
-══════════════════════════════════════════════════════════ */
 const $ = id => document.getElementById(id);
-
 const dom = {
-  body:           document.body,
-  timerTime:      $('timer-time'),
-  timerLabel:     $('timer-label'),
-  btnPlayPause:   $('btn-play-pause'),
-  btnPlayIcon:    $('btn-play-icon'),
-  btnReset:       $('btn-reset'),
-  btnSkip:        $('btn-skip'),
-  btnSettings:    $('btn-settings'),
-  modeTabs:       document.querySelectorAll('.mode-tab'),
-  sessionDots:    $('session-dots'),
-  ringProgress:   $('ring-progress'),
-  settingsCard:   $('settings-card'),
-  // Settings controls
-  rangeWork:      $('range-work'),
-  rangeShort:     $('range-short'),
-  rangeLong:      $('range-long'),
-  valWork:        $('val-work'),
-  valShort:       $('val-short'),
-  valLong:        $('val-long'),
-  toggleSound:    $('toggle-sound'),
-  presetBtns:     document.querySelectorAll('.preset-btn'),
+  timerTime: $('timer-time'), timerLabel: $('timer-label'),
+  btnPlayPause: $('btn-play-pause'), btnPlayIcon: $('btn-play-icon'),
+  btnReset: $('btn-reset'), btnSkip: $('btn-skip'),
+  btnSettings: $('btn-settings'), btnMusicToggle: $('btn-music-toggle'),
+  modeTabs: document.querySelectorAll('.mode-tab'),
+  sessionDots: $('session-dots'), ringProgress: $('ring-progress'),
+  settingsCard: $('settings-card'), musicCard: $('music-card'),
+  rangeWork: $('range-work'), rangeShort: $('range-short'), rangeLong: $('range-long'),
+  valWork: $('val-work'), valShort: $('val-short'), valLong: $('val-long'),
+  toggleSound: $('toggle-sound'), presetBtns: document.querySelectorAll('.preset-btn'),
+  // music
+  musicAudio: $('music-audio'), musicNowPlaying: $('music-now-playing'),
+  musicPlayPause: $('music-playpause'), musicPrev: $('music-prev'), musicNext: $('music-next'),
+  musicVolume: $('music-volume'), musicVolLabel: $('music-vol-label'),
+  musicList: $('music-list'), toggleAutoplay: $('toggle-autoplay'),
 };
 
-/* ══════════════════════════════════════════════════════════
-   4.  SVG RING SETUP
-   The progress ring is an SVG circle. We control how much
-   of it is "drawn" using stroke-dashoffset.
-══════════════════════════════════════════════════════════ */
+/* ── Ring ── */
 function setupRing() {
-  const circle = dom.ringProgress;
-  const r = parseFloat(circle.getAttribute('r'));
-  // Circumference = 2 × π × radius
-  const circumference = 2 * Math.PI * r;
-  circle.style.strokeDasharray = circumference;
-  circle.style.strokeDashoffset = 0;
-  // Store for later use
-  dom.ringProgress._circumference = circumference;
+  const r = parseFloat(dom.ringProgress.getAttribute('r'));
+  const c = 2 * Math.PI * r;
+  dom.ringProgress.style.strokeDasharray  = c;
+  dom.ringProgress.style.strokeDashoffset = 0;
+  dom.ringProgress._c = c;
+}
+function setRingProgress(f) {
+  dom.ringProgress.style.strokeDashoffset = dom.ringProgress._c - f * dom.ringProgress._c;
 }
 
-/**
- * Update the ring to show `fraction` progress (0 = empty, 1 = full).
- * @param {number} fraction - value between 0 and 1
- */
-function setRingProgress(fraction) {
-  const c = dom.ringProgress._circumference;
-  // dashoffset = circumference means 0% drawn
-  // dashoffset = 0 means 100% drawn
-  dom.ringProgress.style.strokeDashoffset = c - fraction * c;
-}
+/* ── Helpers ── */
+const toSec  = m => m * 60;
+const fmt    = s => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+const LABELS = { work:'Focus Time', short:'Short Break', long:'Long Break' };
 
-/* ══════════════════════════════════════════════════════════
-   5.  HELPERS
-══════════════════════════════════════════════════════════ */
-
-/** Convert minutes → seconds */
-const minutesToSeconds = m => m * 60;
-
-/** Format seconds as MM:SS string */
-function formatTime(totalSec) {
-  const m = Math.floor(totalSec / 60);
-  const s = totalSec % 60;
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-}
-
-/** Human-readable label for each mode */
-const MODE_LABELS = {
-  work:  'Focus Time',
-  short: 'Short Break',
-  long:  'Long Break',
-};
-
-/* ══════════════════════════════════════════════════════════
-   6.  RENDER FUNCTIONS
-   These read from `state` and update the DOM. They do NOT
-   change state themselves.
-══════════════════════════════════════════════════════════ */
-
-/** Update the big timer numbers */
-function renderTime() {
-  dom.timerTime.textContent = formatTime(state.remainingSeconds);
-}
-
-/** Update the ring arc */
-function renderRing() {
-  const fraction = state.totalSeconds > 0
-    ? state.remainingSeconds / state.totalSeconds
-    : 1;
-  setRingProgress(fraction);
-}
-
-/** Update play/pause icon */
-function renderPlayPause() {
-  dom.btnPlayIcon.textContent = state.isRunning ? '⏸' : '▶';
-}
-
-/** Update mode tab highlights and body class */
+/* ── Render ── */
+function renderTime()  { dom.timerTime.textContent = fmt(state.remainingSeconds); }
+function renderRing()  { setRingProgress(state.totalSeconds > 0 ? state.remainingSeconds / state.totalSeconds : 1); }
+function renderPlay()  { dom.btnPlayIcon.textContent = state.isRunning ? '⏸' : '▶'; }
 function renderMode() {
-  dom.modeTabs.forEach(tab => {
-    tab.classList.toggle('active', tab.dataset.mode === state.mode);
-  });
-  dom.body.className = `mode-${state.mode}`;
-  dom.timerLabel.textContent = MODE_LABELS[state.mode];
+  dom.modeTabs.forEach(t => t.classList.toggle('active', t.dataset.mode === state.mode));
+  dom.timerLabel.textContent = LABELS[state.mode];
+  const colors = { work: '#30d158', short: '#0a84ff', long: '#bf5af2' };
+  dom.ringProgress.style.stroke = colors[state.mode];
+  dom.btnPlayPause.style.background = colors[state.mode];
 }
-
-/** Render session dots (up to 4) */
-function renderSessionDots() {
+function renderDots() {
   dom.sessionDots.innerHTML = '';
   for (let i = 0; i < state.sessionsUntilLong; i++) {
-    const dot = document.createElement('div');
-    dot.className = 'dot' + (i < state.sessionsCompleted ? ' completed' : '');
-    dom.sessionDots.appendChild(dot);
+    const d = document.createElement('div');
+    d.className = 'dot' + (i < state.sessionsCompleted ? ' completed' : '');
+    dom.sessionDots.appendChild(d);
   }
 }
-
-/** Render settings panel values */
 function renderSettings() {
   dom.rangeWork.value  = state.durations.work;
   dom.rangeShort.value = state.durations.short;
@@ -191,312 +81,174 @@ function renderSettings() {
   dom.valShort.textContent = `${state.durations.short} min`;
   dom.valLong.textContent  = `${state.durations.long} min`;
   dom.toggleSound.checked  = state.soundEnabled;
-
-  // Highlight active preset
-  dom.presetBtns.forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.preset === state.activePreset);
-  });
-
-  // Open/close the panel
+  dom.presetBtns.forEach(b => b.classList.toggle('active', b.dataset.preset === state.activePreset));
   dom.settingsCard.classList.toggle('open', state.settingsOpen);
+  dom.musicCard.classList.toggle('open', state.musicOpen);
 }
+function renderAll() { renderTime(); renderRing(); renderPlay(); renderMode(); renderDots(); renderSettings(); }
 
-/** Call ALL render functions — a full UI sync */
-function renderAll() {
-  renderTime();
-  renderRing();
-  renderPlayPause();
-  renderMode();
-  renderSessionDots();
-  renderSettings();
-}
-
-/* ══════════════════════════════════════════════════════════
-   7.  TIMER CORE
-══════════════════════════════════════════════════════════ */
-
-/** Load the current mode's duration into state */
+/* ── Timer core ── */
 function loadDuration() {
-  const seconds = minutesToSeconds(state.durations[state.mode]);
-  state.totalSeconds = seconds;
-  state.remainingSeconds = seconds;
+  const s = toSec(state.durations[state.mode]);
+  state.totalSeconds = s; state.remainingSeconds = s;
 }
-
-/** Start the countdown */
 function startTimer() {
   if (state.isRunning) return;
   state.isRunning = true;
-
   state.intervalId = setInterval(() => {
-    if (state.remainingSeconds <= 0) {
-      onTimerComplete();
-      return;
-    }
+    if (state.remainingSeconds <= 0) { onComplete(); return; }
     state.remainingSeconds--;
-    renderTime();
-    renderRing();
+    renderTime(); renderRing();
   }, 1000);
-
-  renderPlayPause();
+  renderPlay();
+  if (state.autoplay && !state.musicPlaying) musicPlay();
 }
-
-/** Pause the countdown */
 function pauseTimer() {
   if (!state.isRunning) return;
   state.isRunning = false;
-  clearInterval(state.intervalId);
-  state.intervalId = null;
-  renderPlayPause();
+  clearInterval(state.intervalId); state.intervalId = null;
+  renderPlay();
 }
+function resetTimer() { pauseTimer(); loadDuration(); renderTime(); renderRing(); }
 
-/** Reset the current session (don't change mode or sessions) */
-function resetTimer() {
+function onComplete() {
   pauseTimer();
-  loadDuration();
-  renderTime();
-  renderRing();
-}
-
-/** Called when the timer reaches zero */
-function onTimerComplete() {
-  pauseTimer();
-
-  // Flash the time display
   dom.timerTime.classList.add('flash');
   setTimeout(() => dom.timerTime.classList.remove('flash'), 1500);
-
-  // Play a sound if enabled
   if (state.soundEnabled) playBeep();
 
-  // Determine which mode comes next (before switching)
   let nextMode;
   if (state.mode === 'work') {
-    const nextCount = state.sessionsCompleted + 1;
-    nextMode = nextCount >= state.sessionsUntilLong ? 'long' : 'short';
-  } else {
-    nextMode = 'work';
-  }
+    const next = state.sessionsCompleted + 1;
+    nextMode = next >= state.sessionsUntilLong ? 'long' : 'short';
+  } else { nextMode = 'work'; }
 
-  // ── Electron Desktop Notification ──────────────────────────
-  // window.electronAPI is injected by the preload script ONLY
-  // when running inside Electron. This guard keeps the code
-  // safe to run in a plain browser too.
-  if (window.electronAPI) {
-    window.electronAPI.timerComplete({
-      mode:     state.mode,
-      nextMode: nextMode,
-    });
-  }
+  window.electronAPI?.timerComplete({ mode: state.mode, nextMode });
 
-  // Track work sessions, then auto-switch mode
   if (state.mode === 'work') {
     state.sessionsCompleted++;
     if (state.sessionsCompleted >= state.sessionsUntilLong) {
-      // Time for a long break!
-      state.sessionsCompleted = 0;
-      switchMode('long');
-    } else {
-      switchMode('short');
-    }
-  } else {
-    // After any break, go back to work
-    switchMode('work');
-  }
+      state.sessionsCompleted = 0; switchMode('long');
+    } else { switchMode('short'); }
+  } else { switchMode('work'); }
 }
 
-/* ══════════════════════════════════════════════════════════
-   8.  MODE SWITCHING
-══════════════════════════════════════════════════════════ */
+function switchMode(m) { pauseTimer(); state.mode = m; loadDuration(); renderMode(); renderTime(); renderRing(); renderDots(); }
 
-/**
- * Switch to a new mode.
- * @param {'work'|'short'|'long'} newMode
- */
-function switchMode(newMode) {
-  pauseTimer();
-  state.mode = newMode;
-  loadDuration();
-  renderMode();
-  renderTime();
-  renderRing();
-  renderSessionDots();
-}
-
-/* ══════════════════════════════════════════════════════════
-   9.  SOUND
-   We generate a simple beep using the Web Audio API — no
-   audio files needed! Great for learning audio on the web.
-══════════════════════════════════════════════════════════ */
-
+/* ── Audio (beep) ── */
 let audioCtx = null;
-
-function getAudioContext() {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  return audioCtx;
-}
-
-/**
- * Play a short beep sequence using the Web Audio API.
- * OscillatorNode → GainNode → destination (speakers).
- */
 function playBeep() {
   try {
-    const ctx = getAudioContext();
-    const beeps = [
-      { freq: 880, start: 0,   dur: 0.12 },
-      { freq: 880, start: 0.18, dur: 0.12 },
-      { freq: 1100, start: 0.36, dur: 0.25 },
-    ];
-    beeps.forEach(({ freq, start, dur }) => {
-      const osc  = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0, ctx.currentTime + start);
-      gain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + start + 0.01);
-      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + start + dur);
-      osc.start(ctx.currentTime + start);
-      osc.stop(ctx.currentTime + start + dur + 0.05);
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    [{ f:880,s:0,d:.12 },{ f:880,s:.18,d:.12 },{ f:1100,s:.36,d:.25 }].forEach(({ f,s,d }) => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.connect(g); g.connect(audioCtx.destination);
+      o.type = 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(0, audioCtx.currentTime + s);
+      g.gain.linearRampToValueAtTime(0.4, audioCtx.currentTime + s + .01);
+      g.gain.linearRampToValueAtTime(0, audioCtx.currentTime + s + d);
+      o.start(audioCtx.currentTime + s); o.stop(audioCtx.currentTime + s + d + .05);
     });
-  } catch (e) {
-    console.warn('Audio playback failed:', e);
+  } catch(e) { console.warn('beep failed', e); }
+}
+
+/* ── Music player ── */
+async function loadTracks() {
+  state.tracks = (await window.electronAPI?.musicListFiles?.()) || [];
+  renderTrackList();
+}
+
+function renderTrackList() {
+  const ul = dom.musicList;
+  ul.innerHTML = '';
+  if (!state.tracks.length) {
+    ul.innerHTML = '<li class="music-empty">No audio files found in public/music/</li>';
+    return;
   }
+  state.tracks.forEach((t, i) => {
+    const li = document.createElement('li');
+    li.className = 'music-track' + (i === state.currentTrack ? ' active' : '');
+    li.textContent = t.name.replace(/\.[^.]+$/, '');
+    li.setAttribute('role', 'option');
+    li.addEventListener('click', () => { state.currentTrack = i; musicPlay(); renderTrackList(); });
+    ul.appendChild(li);
+  });
 }
 
-/* ══════════════════════════════════════════════════════════
-   10.  EVENT LISTENERS
-   Wire up all user interactions.
-══════════════════════════════════════════════════════════ */
+function musicPlay() {
+  if (!state.tracks.length) return;
+  if (state.currentTrack < 0) state.currentTrack = 0;
+  const t = state.tracks[state.currentTrack];
+  // Use file:// path
+  dom.musicAudio.src = `file://${t.path.replace(/\\/g,'/')}`;
+  dom.musicAudio.volume = parseInt(dom.musicVolume.value) / 100;
+  dom.musicAudio.play().catch(e => console.warn('music play err', e));
+  state.musicPlaying = true;
+  dom.musicPlayPause.innerHTML = '⏸';
+  dom.musicNowPlaying.textContent = t.name.replace(/\.[^.]+$/, '');
+  renderTrackList();
+}
 
+function musicPause() {
+  dom.musicAudio.pause();
+  state.musicPlaying = false;
+  dom.musicPlayPause.innerHTML = '▶';
+}
+
+function musicToggle() { state.musicPlaying ? musicPause() : musicPlay(); }
+
+function musicPrev() {
+  if (!state.tracks.length) return;
+  state.currentTrack = (state.currentTrack - 1 + state.tracks.length) % state.tracks.length;
+  if (state.musicPlaying) musicPlay(); else { dom.musicNowPlaying.textContent = state.tracks[state.currentTrack].name.replace(/\.[^.]+$/,''); renderTrackList(); }
+}
+function musicNext() {
+  if (!state.tracks.length) return;
+  state.currentTrack = (state.currentTrack + 1) % state.tracks.length;
+  if (state.musicPlaying) musicPlay(); else { dom.musicNowPlaying.textContent = state.tracks[state.currentTrack].name.replace(/\.[^.]+$/,''); renderTrackList(); }
+}
+
+/* ── Events ── */
 function bindEvents() {
+  dom.btnPlayPause.addEventListener('click', () => state.isRunning ? pauseTimer() : startTimer());
+  dom.btnReset.addEventListener('click', resetTimer);
+  dom.btnSkip.addEventListener('click', () => { pauseTimer(); onComplete(); });
+  dom.modeTabs.forEach(t => t.addEventListener('click', () => { if (t.dataset.mode !== state.mode) switchMode(t.dataset.mode); }));
 
-  /* ─── Play / Pause ─── */
-  dom.btnPlayPause.addEventListener('click', () => {
-    if (state.isRunning) {
-      pauseTimer();
-    } else {
-      startTimer();
-    }
+  dom.btnSettings.addEventListener('click', () => { state.settingsOpen = !state.settingsOpen; renderSettings(); });
+  dom.btnMusicToggle.addEventListener('click', () => { state.musicOpen = !state.musicOpen; if (state.musicOpen) loadTracks(); renderSettings(); });
+
+  dom.presetBtns.forEach(b => b.addEventListener('click', () => {
+    state.activePreset = b.dataset.preset;
+    state.durations = { ...PRESETS[b.dataset.preset] };
+    pauseTimer(); loadDuration(); renderAll();
+  }));
+
+  dom.rangeWork.addEventListener('input', function() { state.durations.work = parseInt(this.value); state.activePreset='custom'; dom.valWork.textContent=`${this.value} min`; if(state.mode==='work'&&!state.isRunning){loadDuration();renderTime();renderRing();} renderSettings(); });
+  dom.rangeShort.addEventListener('input', function() { state.durations.short = parseInt(this.value); state.activePreset='custom'; dom.valShort.textContent=`${this.value} min`; if(state.mode==='short'&&!state.isRunning){loadDuration();renderTime();renderRing();} renderSettings(); });
+  dom.rangeLong.addEventListener('input', function() { state.durations.long = parseInt(this.value); state.activePreset='custom'; dom.valLong.textContent=`${this.value} min`; if(state.mode==='long'&&!state.isRunning){loadDuration();renderTime();renderRing();} renderSettings(); });
+
+  dom.toggleSound.addEventListener('change', () => { state.soundEnabled = dom.toggleSound.checked; });
+
+  // Music
+  dom.musicPlayPause.addEventListener('click', musicToggle);
+  dom.musicPrev.addEventListener('click', musicPrev);
+  dom.musicNext.addEventListener('click', musicNext);
+  dom.musicAudio.addEventListener('ended', musicNext);
+  dom.musicVolume.addEventListener('input', function() {
+    dom.musicAudio.volume = this.value / 100;
+    dom.musicVolLabel.textContent = `${this.value}%`;
   });
+  dom.toggleAutoplay.addEventListener('change', () => { state.autoplay = dom.toggleAutoplay.checked; });
 
-  /* ─── Reset ─── */
-  dom.btnReset.addEventListener('click', () => {
-    resetTimer();
-  });
-
-  /* ─── Skip ─── */
-  dom.btnSkip.addEventListener('click', () => {
-    // Skip to next session (same logic as completing the session)
-    pauseTimer();
-    onTimerComplete();
-  });
-
-  /* ─── Mode Tabs ─── */
-  dom.modeTabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      if (tab.dataset.mode !== state.mode) {
-        switchMode(tab.dataset.mode);
-      }
-    });
-  });
-
-  /* ─── Settings Toggle ─── */
-  dom.btnSettings.addEventListener('click', () => {
-    state.settingsOpen = !state.settingsOpen;
-    renderSettings();
-  });
-
-  /* ─── Preset Buttons ─── */
-  dom.presetBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const key = btn.dataset.preset;
-      state.activePreset = key;
-      state.durations = { ...PRESETS[key] };
-      // Also sync sliders
-      pauseTimer();
-      loadDuration();
-      renderAll();
-    });
-  });
-
-  /* ─── Duration Sliders ─── */
-  dom.rangeWork.addEventListener('input', () => {
-    state.durations.work = parseInt(dom.rangeWork.value);
-    state.activePreset = 'custom';  // no longer a preset
-    dom.valWork.textContent = `${state.durations.work} min`;
-    // If we're in work mode, reload duration
-    if (state.mode === 'work' && !state.isRunning) {
-      loadDuration();
-      renderTime();
-      renderRing();
-    }
-    renderSettings(); // re-highlight preset buttons
-  });
-
-  dom.rangeShort.addEventListener('input', () => {
-    state.durations.short = parseInt(dom.rangeShort.value);
-    state.activePreset = 'custom';
-    dom.valShort.textContent = `${state.durations.short} min`;
-    if (state.mode === 'short' && !state.isRunning) {
-      loadDuration();
-      renderTime();
-      renderRing();
-    }
-    renderSettings();
-  });
-
-  dom.rangeLong.addEventListener('input', () => {
-    state.durations.long = parseInt(dom.rangeLong.value);
-    state.activePreset = 'custom';
-    dom.valLong.textContent = `${state.durations.long} min`;
-    if (state.mode === 'long' && !state.isRunning) {
-      loadDuration();
-      renderTime();
-      renderRing();
-    }
-    renderSettings();
-  });
-
-  /* ─── Sound Toggle ─── */
-  dom.toggleSound.addEventListener('change', () => {
-    state.soundEnabled = dom.toggleSound.checked;
-  });
-
-  /* ─── Keyboard Shortcuts ─── */
   document.addEventListener('keydown', e => {
-    // Ignore if user is typing in an input
+    if (e.target.closest('#panel-notepad')) return;
     if (e.target.tagName === 'INPUT') return;
-
-    switch (e.key) {
-      case ' ':               // Space = play/pause
-        e.preventDefault();
-        dom.btnPlayPause.click();
-        break;
-      case 'r': case 'R':    // R = reset
-        resetTimer();
-        break;
-      case 's': case 'S':    // S = settings
-        state.settingsOpen = !state.settingsOpen;
-        renderSettings();
-        break;
-    }
+    if (e.key === ' ') { e.preventDefault(); dom.btnPlayPause.click(); }
+    if (e.key === 'r' || e.key === 'R') resetTimer();
+    if (e.key === 's' || e.key === 'S') { state.settingsOpen = !state.settingsOpen; renderSettings(); }
   });
 }
 
-/* ══════════════════════════════════════════════════════════
-   11.  INIT
-   Everything starts here.
-══════════════════════════════════════════════════════════ */
-function init() {
-  setupRing();          // compute SVG circumference
-  loadDuration();       // set initial time from state
-  bindEvents();         // attach all listeners
-  renderAll();          // paint the full UI
-}
-
-// Wait for DOM to be fully loaded before running
+function init() { setupRing(); loadDuration(); bindEvents(); renderAll(); }
 document.addEventListener('DOMContentLoaded', init);

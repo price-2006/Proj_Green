@@ -1,49 +1,38 @@
-/**
- * electron/preload/preload.js — Preload / Bridge Script
- * Project Green
- *
- * ─────────────────────────────────────────────────────────────────────────
- * LEARNING NOTES: WHY A PRELOAD SCRIPT?
- * ─────────────────────────────────────────────────────────────────────────
- *
- * Security model:
- *   - The RENDERER (your HTML page) runs sandboxed, like a webpage.
- *   - The MAIN PROCESS has full OS access.
- *   - The PRELOAD runs with access to BOTH, before the page loads.
- *
- * contextBridge.exposeInMainWorld():
- *   - Creates a safe, read-only API on `window` in the renderer.
- *   - The renderer can CALL these functions, but cannot access Node.js itself.
- *   - This pattern is called "contextIsolation" and is the recommended
- *     Electron security practice.
- *
- * Think of it like a doorbell: the renderer can ring the bell (call the API),
- * but it can't walk into the main process's house.
- * ─────────────────────────────────────────────────────────────────────────
- */
-
 'use strict';
 
 const { contextBridge, ipcRenderer } = require('electron');
 
 /**
- * Expose a safe API to the renderer under window.electronAPI
- *
- * The renderer (pomodoro.js) can call:
- *   window.electronAPI.timerComplete({ mode, nextMode })
- *
- * This sends an IPC message to the main process, which handles
- * showing the OS desktop notification.
+ * electron/preload/preload.js
+ * Exposes safe IPC bridges to the renderer under window.electronAPI
  */
 contextBridge.exposeInMainWorld('electronAPI', {
 
-  /**
-   * Notify the main process that a timer session just ended.
-   * @param {{ mode: string, nextMode: string }} data
-   */
-  timerComplete: (data) => {
-    // 'send' is fire-and-forget — no return value expected
-    ipcRenderer.send('timer:complete', data);
-  },
+  // ── Window Controls ──────────────────────────────────────
+  windowMinimize: ()       => ipcRenderer.send('window:minimize'),
+  windowMaximize: ()       => ipcRenderer.send('window:maximize'),
+  windowClose:    ()       => ipcRenderer.send('window:close'),
+
+  // ── Pomodoro ─────────────────────────────────────────────
+  timerComplete: (data)    => ipcRenderer.send('timer:complete', data),
+
+  // ── Music ────────────────────────────────────────────────
+  // Returns an array of { name, path } objects from public/music/
+  musicListFiles: ()       => ipcRenderer.invoke('music:listFiles'),
+
+  // ── Notes ────────────────────────────────────────────────
+  notesLoad: ()            => ipcRenderer.invoke('notes:load'),
+  notesSave: (html)        => ipcRenderer.invoke('notes:save', html),
+
+  // ── Planner ──────────────────────────────────────────────
+  plannerLoad: ()          => ipcRenderer.invoke('planner:load'),
+  plannerSave: (tasks)     => ipcRenderer.invoke('planner:save', tasks),
+
+  // ── Google Drive ─────────────────────────────────────────
+  driveOpenUrl:    (url)    => ipcRenderer.send('drive:openUrl', url),
+  driveStartAuth:  (url)    => ipcRenderer.invoke('drive:startAuth', url),
+  driveLoadToken:  ()       => ipcRenderer.invoke('drive:loadToken'),
+  driveSaveToken:  (token)  => ipcRenderer.invoke('drive:saveToken', token),
+  driveClearToken: ()       => ipcRenderer.invoke('drive:clearToken'),
 
 });
