@@ -30,6 +30,8 @@ const DRIVE_API_URL  = 'https://www.googleapis.com/drive/v3';
 let driveToken   = null;
 let currentFiles = [];
 let searchQuery  = '';
+let currentFolderId = 'root';
+let breadcrumbPath = [{ id: 'root', name: 'My Drive' }];
 
 // ── DOM refs ──────────────────────────────────────────────
 const authView   = document.getElementById('drive-auth-view');
@@ -65,6 +67,33 @@ function formatSize(bytes) {
   const kb = bytes / 1024;
   if (kb < 1024) return `${kb.toFixed(0)} KB`;
   return `${(kb / 1024).toFixed(1)} MB`;
+}
+
+function renderBreadcrumbs() {
+  const bc = document.getElementById('drive-breadcrumb');
+  if (!bc) return;
+  bc.innerHTML = '';
+  breadcrumbPath.forEach((item, index) => {
+    if (index > 0) {
+      const sep = document.createElement('span');
+      sep.textContent = ' › ';
+      bc.appendChild(sep);
+    }
+    const span = document.createElement('span');
+    span.textContent = item.name;
+    span.style.cursor = 'pointer';
+    span.addEventListener('click', () => {
+      breadcrumbPath = breadcrumbPath.slice(0, index + 1);
+      renderBreadcrumbs();
+      loadFiles(item.id);
+    });
+    bc.appendChild(span);
+  });
+  
+  const backBtn = document.getElementById('btn-drive-back');
+  if (backBtn) {
+    backBtn.style.display = breadcrumbPath.length > 1 ? 'inline-block' : 'none';
+  }
 }
 
 // ── OAuth helpers ─────────────────────────────────────────
@@ -142,16 +171,19 @@ async function apiGet(path, params = {}) {
 
 // ── File listing ──────────────────────────────────────────
 async function loadFiles(folderId = 'root') {
+  currentFolderId = folderId;
   fileList.innerHTML = '<div class="drive-loading">Loading files…</div>';
   try {
     const q = folderId === 'root'
-      ? `'root' in parents and trashed=false`
+      ? `('root' in parents or sharedWithMe=true) and trashed=false`
       : `'${folderId}' in parents and trashed=false`;
     const data = await apiGet('/files', {
       q,
       fields: 'files(id,name,mimeType,size,modifiedTime,webViewLink)',
       orderBy: 'folder,name',
       pageSize: '50',
+      includeItemsFromAllDrives: true,
+      supportsAllDrives: true,
     });
     currentFiles = data.files || [];
     renderFiles();
@@ -180,7 +212,8 @@ function renderFiles() {
     `;
     if (f.mimeType?.includes('folder')) {
       item.addEventListener('click', () => {
-        document.getElementById('drive-breadcrumb').innerHTML += ` <span>›</span> <span>${f.name}</span>`;
+        breadcrumbPath.push({ id: f.id, name: f.name });
+        renderBreadcrumbs();
         loadFiles(f.id);
       });
     } else if (f.webViewLink) {
@@ -203,6 +236,7 @@ async function init() {
   if (driveToken) {
     showFileView();
     setStatus('Connected to Google Drive');
+    renderBreadcrumbs();
     loadFiles();
   } else {
     showAuthView();
@@ -224,6 +258,7 @@ async function init() {
       await window.electronAPI?.driveSaveToken?.(token);
       showFileView();
       setStatus('Connected to Google Drive');
+      renderBreadcrumbs();
       loadFiles();
     } catch(e) {
       const msg = e.message || String(e);
@@ -238,12 +273,23 @@ async function init() {
     await window.electronAPI?.driveClearToken?.();
     driveToken = null;
     currentFiles = [];
+    breadcrumbPath = [{ id: 'root', name: 'My Drive' }];
+    renderBreadcrumbs();
     showAuthView();
     setStatus('Connect your Google account to browse files.');
   });
 
+  // Back
+  document.getElementById('btn-drive-back')?.addEventListener('click', () => {
+    if (breadcrumbPath.length > 1) {
+      breadcrumbPath.pop();
+      renderBreadcrumbs();
+      loadFiles(breadcrumbPath[breadcrumbPath.length - 1].id);
+    }
+  });
+
   // Refresh
-  document.getElementById('btn-drive-refresh')?.addEventListener('click', () => loadFiles());
+  document.getElementById('btn-drive-refresh')?.addEventListener('click', () => loadFiles(currentFolderId));
 
   // Search
   searchInput?.addEventListener('input', () => { searchQuery = searchInput.value; renderFiles(); });
