@@ -182,7 +182,10 @@ async function openPdf(f) {
   const iframe = document.getElementById('pdf-iframe');
   const pomoBody = document.getElementById('pomo-body');
   const timerContainer = document.getElementById('pdf-timer-container');
-  
+
+  // Tell the Gemini assistant which PDF is open
+  window._geminiSetPdf?.(f.name);
+
   if (objectUrlToRevoke) {
     URL.revokeObjectURL(objectUrlToRevoke);
     objectUrlToRevoke = null;

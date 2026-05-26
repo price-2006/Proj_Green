@@ -391,6 +391,12 @@ input[type="text"]:focus,input[type="date"]:focus,input[type="time"]:focus{borde
 .drive-file-name{font-size:11px;text-align:center;color:var(--text2);word-break:break-word;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .drive-loading,.drive-error{text-align:center;padding:40px;color:var(--text2)}
 
+/* Drive view tabs (My Drive / Starred) */
+.drive-view-tabs{display:flex;background:var(--bg2);border:1px solid var(--glass-border);border-radius:99px;padding:3px;gap:2px;flex-shrink:0}
+.drive-tab{padding:5px 14px;border-radius:99px;background:transparent;color:var(--text2);font-size:12px;font-weight:500;transition:all .15s var(--ease);white-space:nowrap}
+.drive-tab:hover{color:var(--text);background:rgba(255,255,255,0.05)}
+.drive-tab.active{background:var(--accent-dim);color:var(--accent);box-shadow:0 0 10px var(--accent-glow)}
+
 /* ── ANIMATIONS ── */
 @keyframes flashComplete{0%,100%{opacity:1}50%{opacity:.4}}
 .timer-time.flash{animation:flashComplete .35s ease-in-out 3}

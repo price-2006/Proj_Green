@@ -286,6 +286,14 @@ function registerIpcHandlers() {
       return true;
     } catch { return false; }
   });
+
+  // ── Gemini API key: save / load ─────────────────────────
+  ipcMain.handle('gemini:loadKey', () => {
+    return readJSON('gemini_key.json', null);
+  });
+  ipcMain.handle('gemini:saveKey', (_event, key) => {
+    return writeJSON('gemini_key.json', { key });
+  });
 }
 
 /* ══════════════════════════════════════════════════════════
