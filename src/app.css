@@ -436,22 +436,22 @@ input[type="text"]:focus,input[type="date"]:focus,input[type="time"]:focus{borde
 }
 .chat-clear-btn:hover{background:rgba(255,255,255,0.06);border-color:var(--glass-border);color:var(--text2)}
 
-/* Sign-in prompt (shown when not signed in to Drive) */
-.chat-signin-prompt{
+/* Key setup card */
+.chat-key-setup{
   display:flex;flex-direction:column;align-items:center;gap:10px;
-  padding:32px 24px;text-align:center;
+  padding:28px 20px;text-align:center;
   border-bottom:1px solid var(--glass-border);
+  background:rgba(255,159,10,0.04);
   flex-shrink:0;
 }
-.chat-signin-icon{
-  width:56px;height:56px;border-radius:16px;
-  background:linear-gradient(135deg,rgba(48,209,88,0.12),rgba(10,132,255,0.12));
-  border:1px solid var(--glass-border);
-  display:flex;align-items:center;justify-content:center;
-  margin-bottom:4px;
-}
-.chat-signin-title{font-size:14px;font-weight:700;color:var(--text)}
-.chat-signin-desc{font-size:12px;color:var(--text2);line-height:1.65;max-width:260px}
+.chat-key-icon{font-size:32px;line-height:1}
+.chat-key-title{font-size:15px;font-weight:700;color:var(--text)}
+.chat-key-desc{font-size:12px;color:var(--text2);line-height:1.6}
+.chat-key-link{font-size:12px;font-weight:500;color:var(--accent)}
+.chat-key-link:hover{text-decoration:underline}
+.chat-key-input-row{display:flex;gap:8px;width:100%;margin-top:4px}
+.chat-key-input-row input{flex:1;padding:8px 12px;font-size:12px}
+.chat-key-hint{font-size:11px;min-height:16px;color:var(--text3)}
 
 /* Messages area */
 #chat-messages{

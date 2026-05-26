@@ -19,8 +19,7 @@ const DRIVE_CONFIG = {
   client_id:     '365915079402-j3t42dj21dp7im9pi1fcbtgjlhttndg6.apps.googleusercontent.com',
   client_secret: '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',
   // redirect_uri is set dynamically by the main process loopback server
-  // Both Drive readonly AND Gemini generative-language in one sign-in
-  scope: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/generative-language',
+  scope:         'https://www.googleapis.com/auth/drive.readonly',
 };
 
 const DRIVE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
@@ -36,10 +35,6 @@ let currentView  = 'mydrive'; // 'mydrive' | 'starred'
 let breadcrumbPath = [{ id: 'root', name: 'My Drive' }];
 let objectUrlToRevoke = null;
 let pdfCurrentZoom = 1.0;
-
-// Expose token access to assistant.js (no direct import coupling)
-window._driveGetToken     = () => driveToken;
-window._driveRefreshToken = () => refreshAccessToken();
 
 // ── DOM refs ──────────────────────────────────────────────
 const authView   = document.getElementById('drive-auth-view');

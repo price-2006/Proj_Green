@@ -346,26 +346,25 @@
               </button>
             </div>
 
-            <!-- Sign-in prompt (shown when not signed in to Drive) -->
-            <div id="chat-signin-prompt" class="chat-signin-prompt hidden">
-              <div class="chat-signin-icon">
-                <svg viewBox="0 0 87.3 78" width="40" height="40" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
-                  <path d="M43.65 25L29.9 1.2c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0-1.2 4.5h27.5z" fill="#00ac47"/>
-                  <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.8l5.85 10.55z" fill="#ea4335"/>
-                  <path d="M43.65 25L57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
-                  <path d="M59.8 53H32.1L18.35 76.8c1.35.8 2.9 1.2 4.5 1.2h50.6c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
-                  <path d="M73.4 26.5l-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25 59.8 53h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
-                </svg>
+            <!-- API Key Setup (shown when no key saved) -->
+            <div id="chat-key-setup" class="chat-key-setup hidden">
+              <div class="chat-key-icon">🔑</div>
+              <h3 class="chat-key-title">Connect Gemini</h3>
+              <p class="chat-key-desc">You need a free Gemini API key to use the AI assistant.</p>
+              <a href="#" id="chat-key-link" class="chat-key-link">Get your free API key →</a>
+              <div class="chat-key-input-row">
+                <input type="password" id="chat-key-input" placeholder="Paste your API key…" autocomplete="off"/>
+                <button class="pill-btn primary" id="btn-chat-save-key">Save</button>
               </div>
-              <p class="chat-signin-title">Sign in to use Gemini</p>
-              <p class="chat-signin-desc">Sign in with Google Drive to unlock the AI assistant. Your Google account is used to access Gemini — no separate API key needed.</p>
+              <p class="chat-key-hint" id="chat-key-error"></p>
             </div>
 
             <!-- Messages -->
-            <div id="chat-messages" role="log" aria-live="polite" aria-label="Gemini conversation"></div>
+            <div id="chat-messages" role="log" aria-live="polite" aria-label="Gemini conversation">
+              <!-- Welcome message injected by JS -->
+            </div>
 
-            <!-- Input row (hidden until signed in) -->
+            <!-- Input row -->
             <div id="chat-input-row" class="hidden">
               <textarea id="chat-input" rows="1" placeholder="Ask about this PDF…" aria-label="Chat input"></textarea>
               <button class="chat-send-btn" id="btn-chat-send" aria-label="Send message">

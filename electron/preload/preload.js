@@ -35,4 +35,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   driveSaveToken:  (token)  => ipcRenderer.invoke('drive:saveToken', token),
   driveClearToken: ()       => ipcRenderer.invoke('drive:clearToken'),
 
+  // ── Gemini ───────────────────────────────────────────────
+  geminiLoadKey: ()         => ipcRenderer.invoke('gemini:loadKey'),
+  geminiSaveKey: (key)      => ipcRenderer.invoke('gemini:saveKey', key),
+
 });
