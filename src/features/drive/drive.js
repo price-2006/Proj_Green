@@ -36,7 +36,6 @@ let currentView  = 'mydrive'; // 'mydrive' | 'starred'
 let breadcrumbPath = [{ id: 'root', name: 'My Drive' }];
 let objectUrlToRevoke = null;
 let pdfCurrentZoom = 1.0;
-let pdfProgressObserver = null; // MutationObserver for the progress bar
 
 // Expose token access to assistant.js (no direct import coupling)
 window._driveGetToken     = () => driveToken;
@@ -184,9 +183,7 @@ async function apiGet(path, params = {}) {
 
 async function openPdf(f) {
   const overlay = document.getElementById('pdf-viewer-overlay');
-  const iframe = document.getElementById('pdf-iframe');
-  const pomoBody = document.getElementById('pomo-body');
-  const timerContainer = document.getElementById('pdf-timer-container');
+  const iframe  = document.getElementById('pdf-iframe');
 
   // Tell the Gemini assistant which PDF is open
   window._geminiSetPdf?.(f.name);
@@ -195,61 +192,14 @@ async function openPdf(f) {
     URL.revokeObjectURL(objectUrlToRevoke);
     objectUrlToRevoke = null;
   }
-  
-  if (pomoBody && timerContainer) {
-    timerContainer.appendChild(pomoBody);
-  }
-  
-  // Inject the pill progress bar into .timer-display if not already there
-  setTimeout(() => {
-    const timerDisplay = timerContainer.querySelector('.timer-display');
-    if (timerDisplay && !timerDisplay.querySelector('.pdf-progress-track')) {
-      const track = document.createElement('div');
-      track.className = 'pdf-progress-track';
-      const fill = document.createElement('div');
-      fill.className = 'pdf-progress-fill';
-      track.appendChild(fill);
-      timerDisplay.appendChild(track);
-    }
-    
-    // Sync --pomo-pct from the ring's dashoffset or timer-time text
-    const syncProgress = () => {
-      const ring = timerContainer.querySelector('.ring-progress');
-      if (ring && ring._c) {
-        const offset = parseFloat(ring.style.strokeDashoffset) || 0;
-        const pct = ring._c > 0 ? Math.max(0, 1 - offset / ring._c) : 1;
-        timerContainer.style.setProperty('--pomo-pct', (pct * 100).toFixed(2) + '%');
-        
-        // Also tint the fill based on timer mode
-        const fill = timerContainer.querySelector('.pdf-progress-fill');
-        if (fill) {
-          const mode = timerContainer.querySelector('.mode-tab.active')?.dataset?.mode;
-          const colors = { work: '#30d158', short: '#0a84ff', long: '#bf5af2' };
-          fill.style.background = colors[mode] || 'var(--accent)';
-          fill.style.boxShadow = `0 0 8px ${colors[mode] || 'var(--accent-glow)'}66`;
-        }
-      }
-    };
-    
-    // Disconnect any old observer
-    if (pdfProgressObserver) pdfProgressObserver.disconnect();
-    
-    // Watch the ring-progress element's style attribute for changes
-    const ringEl = timerContainer.querySelector('.ring-progress');
-    if (ringEl) {
-      pdfProgressObserver = new MutationObserver(syncProgress);
-      pdfProgressObserver.observe(ringEl, { attributes: true, attributeFilter: ['style'] });
-      syncProgress(); // initial sync
-    }
-  }, 100);
-  
+
   pdfCurrentZoom = 1.0;
   overlay.classList.remove('hidden');
   iframe.src = '';
   iframe.style.zoom = '';
-  
+
   setStatus('Downloading PDF...');
-  
+
   try {
     const url = `${DRIVE_API_URL}/files/${f.id}?alt=media`;
     let res = await fetch(url, { headers: { Authorization: `Bearer ${driveToken.access_token}` } });
@@ -258,7 +208,7 @@ async function openPdf(f) {
       res = await fetch(url, { headers: { Authorization: `Bearer ${driveToken.access_token}` } });
     }
     if (!res.ok) throw new Error(`Drive API error: ${res.status}`);
-    
+
     const blob = await res.blob();
     const objectUrl = URL.createObjectURL(blob);
     objectUrlToRevoke = objectUrl;
@@ -452,13 +402,6 @@ async function init() {
     const iframe = document.getElementById('pdf-iframe');
     iframe.src = '';
     iframe.style.zoom = '';
-    
-    // Teleport pomo-body back to its original panel
-    const pomoBody = document.getElementById('pomo-body');
-    const panelPomodoro = document.getElementById('panel-pomodoro');
-    if (pomoBody && panelPomodoro) {
-      panelPomodoro.appendChild(pomoBody);
-    }
   });
 
   // PDF Navigation — prev / next page via postMessage to PDF viewer

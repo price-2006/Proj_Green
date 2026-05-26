@@ -243,7 +243,7 @@ function bindEvents() {
 
   document.addEventListener('keydown', e => {
     if (e.target.closest('#panel-notepad')) return;
-    if (e.target.tagName === 'INPUT') return;
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
     if (e.key === ' ') { e.preventDefault(); dom.btnPlayPause.click(); }
     if (e.key === 'r' || e.key === 'R') resetTimer();
     if (e.key === 's' || e.key === 'S') { state.settingsOpen = !state.settingsOpen; renderSettings(); }
