@@ -31,6 +31,7 @@ let driveToken   = null;
 let currentFiles = [];
 let searchQuery  = '';
 let currentFolderId = 'root';
+let currentView  = 'mydrive'; // 'mydrive' | 'starred'
 let breadcrumbPath = [{ id: 'root', name: 'My Drive' }];
 let objectUrlToRevoke = null;
 let pdfCurrentZoom = 1.0;
@@ -95,8 +96,12 @@ function renderBreadcrumbs() {
   
   const backBtn = document.getElementById('btn-drive-back');
   if (backBtn) {
-    backBtn.style.display = breadcrumbPath.length > 1 ? 'inline-block' : 'none';
+    // Hide back button when viewing starred (no folder navigation there)
+    backBtn.style.display = (currentView === 'mydrive' && breadcrumbPath.length > 1) ? 'inline-block' : 'none';
   }
+
+  // Also hide breadcrumb row when in starred view
+  if (bc) bc.style.display = currentView === 'starred' ? 'none' : '';
 }
 
 // ── OAuth helpers ─────────────────────────────────────────
@@ -259,6 +264,8 @@ async function openPdf(f) {
 
 // ── File listing ──────────────────────────────────────────
 async function loadFiles(folderId = 'root') {
+  currentView = 'mydrive';
+  setActiveTab('mydrive');
   currentFolderId = folderId;
   fileList.innerHTML = '<div class="drive-loading">Loading files…</div>';
   try {
@@ -279,6 +286,33 @@ async function loadFiles(folderId = 'root') {
     fileList.innerHTML = `<div class="drive-error">⚠️ ${e.message}</div>`;
     console.error('Drive loadFiles error', e);
   }
+}
+
+async function loadStarred() {
+  currentView = 'starred';
+  setActiveTab('starred');
+  fileList.innerHTML = '<div class="drive-loading">Loading starred files…</div>';
+  renderBreadcrumbs(); // hides breadcrumb + back btn
+  try {
+    const data = await apiGet('/files', {
+      q: 'starred=true and trashed=false',
+      fields: 'files(id,name,mimeType,size,modifiedTime,webViewLink)',
+      orderBy: 'folder,name',
+      pageSize: '100',
+      includeItemsFromAllDrives: true,
+      supportsAllDrives: true,
+    });
+    currentFiles = data.files || [];
+    renderFiles();
+  } catch(e) {
+    fileList.innerHTML = `<div class="drive-error">⚠️ ${e.message}</div>`;
+    console.error('Drive loadStarred error', e);
+  }
+}
+
+function setActiveTab(view) {
+  document.getElementById('btn-tab-mydrive')?.classList.toggle('active', view === 'mydrive');
+  document.getElementById('btn-tab-starred')?.classList.toggle('active', view === 'starred');
 }
 
 function renderFiles() {
@@ -380,7 +414,22 @@ async function init() {
   });
 
   // Refresh
-  document.getElementById('btn-drive-refresh')?.addEventListener('click', () => loadFiles(currentFolderId));
+  document.getElementById('btn-drive-refresh')?.addEventListener('click', () => {
+    if (currentView === 'starred') loadStarred();
+    else loadFiles(currentFolderId);
+  });
+
+  // View tabs — My Drive / Starred
+  document.getElementById('btn-tab-mydrive')?.addEventListener('click', () => {
+    if (currentView !== 'mydrive') {
+      breadcrumbPath = [{ id: 'root', name: 'My Drive' }];
+      renderBreadcrumbs();
+      loadFiles('root');
+    }
+  });
+  document.getElementById('btn-tab-starred')?.addEventListener('click', () => {
+    if (currentView !== 'starred') loadStarred();
+  });
 
   // Search
   searchInput?.addEventListener('input', () => { searchQuery = searchInput.value; renderFiles(); });
