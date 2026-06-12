@@ -287,12 +287,12 @@ function registerIpcHandlers() {
     } catch { return false; }
   });
 
-  // ── Gemini API key: save / load ─────────────────────────
-  ipcMain.handle('gemini:loadKey', () => {
-    return readJSON('gemini_key.json', null);
+  // ── Ollama config: save / load { model, endpoint } ──────────────────
+  ipcMain.handle('ollama:loadConfig', () => {
+    return readJSON('ollama_config.json', null);
   });
-  ipcMain.handle('gemini:saveKey', (_event, key) => {
-    return writeJSON('gemini_key.json', { key });
+  ipcMain.handle('ollama:saveConfig', (_event, cfg) => {
+    return writeJSON('ollama_config.json', cfg);
   });
 }
 

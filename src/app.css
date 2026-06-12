@@ -540,3 +540,61 @@ input[type="text"]:focus,input[type="date"]:focus,input[type="time"]:focus{borde
 @keyframes flashComplete{0%,100%{opacity:1}50%{opacity:.4}}
 .timer-time.flash{animation:flashComplete .35s ease-in-out 3}
 
+/* ─────────────── OLLAMA STREAMING CHAT ─────────────── */
+
+/* Mode badge: Cloud Run vs Local */
+#chat-mode-badge{
+  font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  padding:2px 7px;border-radius:99px;
+  border:1px solid rgba(10,132,255,0.25);
+  background:rgba(10,132,255,0.18);color:#0a84ff;
+  cursor:default;transition:all .2s;
+}
+#chat-mode-badge[title*="localhost"]{
+  background:rgba(48,209,88,0.15);color:var(--accent);
+  border-color:rgba(48,209,88,0.25);
+}
+
+/* Streaming bubble — shows a blinking cursor while tokens arrive */
+.chat-msg.streaming .chat-bubble{
+  border-color:rgba(48,209,88,0.25);
+  background:linear-gradient(135deg,rgba(48,209,88,0.06) 0%,var(--bg2) 100%);
+}
+.chat-msg.streaming .chat-bubble-text::after{
+  content:'▋';
+  display:inline-block;
+  color:var(--accent);
+  animation:blink-cursor .7s step-end infinite;
+  margin-left:2px;
+  font-size:12px;
+  vertical-align:text-bottom;
+}
+@keyframes blink-cursor{0%,100%{opacity:1}50%{opacity:0}}
+
+/* Error text inside a bubble */
+.stream-error{color:var(--red);font-size:12px}
+
+/* Endpoint input in setup panel (url type styling) */
+#chat-endpoint-input{
+  width:100%;padding:8px 12px;
+  background:var(--bg2);border:1px solid var(--glass-border);
+  border-radius:var(--r-md);color:var(--text);
+  font-family:inherit;font-size:12px;
+  outline:none;transition:border-color .15s;
+}
+#chat-endpoint-input:focus{border-color:var(--accent)}
+#chat-endpoint-input::placeholder{color:var(--text3)}
+
+/* Settings (gear) button in chat header */
+#btn-chat-settings{
+  width:28px;height:28px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text3);border:1px solid transparent;
+  transition:all .15s;
+}
+#btn-chat-settings:hover{
+  background:rgba(255,255,255,0.06);
+  border-color:var(--glass-border);
+  color:var(--text2);
+  transform:rotate(45deg);
+}

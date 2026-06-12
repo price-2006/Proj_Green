@@ -35,8 +35,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   driveSaveToken:  (token)  => ipcRenderer.invoke('drive:saveToken', token),
   driveClearToken: ()       => ipcRenderer.invoke('drive:clearToken'),
 
-  // ── Gemini ───────────────────────────────────────────────
-  geminiLoadKey: ()         => ipcRenderer.invoke('gemini:loadKey'),
-  geminiSaveKey: (key)      => ipcRenderer.invoke('gemini:saveKey', key),
+  // ── Ollama ──────────────────────────────────────────────────
+  // Stores { model: string, endpoint: string } in userData/ollama_config.json
+  ollamaLoadConfig: ()       => ipcRenderer.invoke('ollama:loadConfig'),
+  ollamaSaveConfig: (cfg)    => ipcRenderer.invoke('ollama:saveConfig', cfg),
+
+  // Legacy aliases kept for compatibility with any existing code
+  geminiLoadKey: ()          => ipcRenderer.invoke('ollama:loadConfig'),
+  geminiSaveKey: (key)       => ipcRenderer.invoke('ollama:saveConfig', { model: key, endpoint: 'http://localhost:11434/api' }),
 
 });

@@ -330,37 +330,45 @@
             <iframe id="pdf-iframe" style="flex: 1; border: none; background: #fff;"></iframe>
           </div>
 
-          <!-- Right: Gemini Chatbot Sidebar -->
+          <!-- Right: Ollama Chatbot Sidebar -->
           <div id="pdf-chat-sidebar">
             <!-- Header -->
             <div class="chat-header">
               <div class="chat-header-left">
-                <div class="chat-gemini-icon" aria-hidden="true">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" fill="currentColor" opacity=".3"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="currentColor"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
+                <div class="chat-gemini-icon" aria-hidden="true" style="font-size: 16px;">
+                  🦙
                 </div>
-                <span class="chat-header-title">Gemini Assistant</span>
-                <span class="chat-header-badge">PDF</span>
+                <span class="chat-header-title">Qwen2.5 Assistant</span>
+                <span class="chat-header-badge" id="chat-mode-badge" title="Connection mode">☁️ Cloud Run</span>
               </div>
-              <button class="chat-clear-btn" id="btn-chat-clear" title="Clear conversation">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-              </button>
+              <div style="display:flex;gap:4px;align-items:center;">
+                <button class="chat-clear-btn" id="btn-chat-settings" title="Change model / endpoint" aria-label="Settings">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </button>
+                <button class="chat-clear-btn" id="btn-chat-clear" title="Clear conversation" aria-label="Clear">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                </button>
+              </div>
             </div>
 
-            <!-- API Key Setup (shown when no key saved) -->
+            <!-- Ollama Setup (shown when no config saved, or settings opened) -->
             <div id="chat-key-setup" class="chat-key-setup hidden">
-              <div class="chat-key-icon">🔑</div>
-              <h3 class="chat-key-title">Connect Gemini</h3>
-              <p class="chat-key-desc">You need a free Gemini API key to use the AI assistant.</p>
-              <a href="#" id="chat-key-link" class="chat-key-link">Get your free API key →</a>
+              <div class="chat-key-icon" style="font-size: 32px;">🦙</div>
+              <h3 class="chat-key-title">Connect Ollama</h3>
+              <p class="chat-key-desc">Enter the model name and endpoint. Use localhost for local dev, or your Cloud Run URL for production.</p>
+              <a href="#" id="chat-key-link" class="chat-key-link">Download Ollama →</a>
               <div class="chat-key-input-row">
-                <input type="password" id="chat-key-input" placeholder="Paste your API key…" autocomplete="off"/>
-                <button class="pill-btn primary" id="btn-chat-save-key">Save</button>
+                <input type="text" id="chat-key-input" placeholder="Model: e.g. qwen2.5" autocomplete="off" style="flex:1;"/>
               </div>
+              <div class="chat-key-input-row" style="margin-top:6px;">
+                <input type="url" id="chat-endpoint-input" placeholder="Endpoint: http://localhost:11434/api" autocomplete="off" style="flex:1;"/>
+              </div>
+              <button class="pill-btn primary" id="btn-chat-save-key" style="width:100%;margin-top:10px;">Connect</button>
               <p class="chat-key-hint" id="chat-key-error"></p>
             </div>
 
             <!-- Messages -->
-            <div id="chat-messages" role="log" aria-live="polite" aria-label="Gemini conversation">
+            <div id="chat-messages" role="log" aria-live="polite" aria-label="Ollama conversation">
               <!-- Welcome message injected by JS -->
             </div>
 

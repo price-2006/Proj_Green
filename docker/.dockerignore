@@ -1,0 +1,8 @@
+# Keep the build context tiny — only the Dockerfile is needed.
+# Model weights come from ollama pull inside the build, not from the host.
+
+# Exclude everything by default
+**
+
+# Allow only the Dockerfile itself
+!Dockerfile
