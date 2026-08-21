@@ -2,6 +2,8 @@
 
 A desktop app I made for myself to stay productive. Has a Pomodoro timer, notepad, weekly planner, Google Drive browser, and a local AI assistant.
 
+p.s. Select devices with GPUs are able to use the AI chatbot.. It is still a work in progress.
+
 ## Running it
 
 ```bash
