@@ -1,5 +1,5 @@
 'use strict';
-/* pomodoro.js — Timer + Music Player */
+/* pomodoro.js — Timer + Jamendo Music Player integration */
 
 const PRESETS = {
   classic: { work: 25, short: 5,  long: 15 },
@@ -14,8 +14,8 @@ const state = {
   sessionsCompleted: 0, sessionsUntilLong: 4,
   soundEnabled: true, activePreset: 'classic',
   settingsOpen: false, musicOpen: false,
-  // music
-  tracks: [], currentTrack: -1, musicPlaying: false, autoplay: false,
+  // music — controlled via music-player.js events
+  autoplay: false,
 };
 
 const $ = id => document.getElementById(id);
@@ -30,11 +30,7 @@ const dom = {
   rangeWork: $('range-work'), rangeShort: $('range-short'), rangeLong: $('range-long'),
   valWork: $('val-work'), valShort: $('val-short'), valLong: $('val-long'),
   toggleSound: $('toggle-sound'), presetBtns: document.querySelectorAll('.preset-btn'),
-  // music
-  musicAudio: $('music-audio'), musicNowPlaying: $('music-now-playing'),
-  musicPlayPause: $('music-playpause'), musicPrev: $('music-prev'), musicNext: $('music-next'),
-  musicVolume: $('music-volume'), musicVolLabel: $('music-vol-label'),
-  musicList: $('music-list'), toggleAutoplay: $('toggle-autoplay'),
+  toggleAutoplay: $('toggle-autoplay'),
 };
 
 /* ── Ring ── */
@@ -101,7 +97,10 @@ function startTimer() {
     renderTime(); renderRing();
   }, 1000);
   renderPlay();
-  if (state.autoplay && !state.musicPlaying) musicPlay();
+  // Trigger music autoplay via the player module
+  if (state.autoplay) {
+    document.dispatchEvent(new CustomEvent('pomodoro:start'));
+  }
 }
 function pauseTimer() {
   if (!state.isRunning) return;
@@ -152,62 +151,6 @@ function playBeep() {
   } catch(e) { console.warn('beep failed', e); }
 }
 
-/* ── Music player ── */
-async function loadTracks() {
-  state.tracks = (await window.electronAPI?.musicListFiles?.()) || [];
-  renderTrackList();
-}
-
-function renderTrackList() {
-  const ul = dom.musicList;
-  ul.innerHTML = '';
-  if (!state.tracks.length) {
-    ul.innerHTML = '<li class="music-empty">No audio files found in public/music/</li>';
-    return;
-  }
-  state.tracks.forEach((t, i) => {
-    const li = document.createElement('li');
-    li.className = 'music-track' + (i === state.currentTrack ? ' active' : '');
-    li.textContent = t.name.replace(/\.[^.]+$/, '');
-    li.setAttribute('role', 'option');
-    li.addEventListener('click', () => { state.currentTrack = i; musicPlay(); renderTrackList(); });
-    ul.appendChild(li);
-  });
-}
-
-function musicPlay() {
-  if (!state.tracks.length) return;
-  if (state.currentTrack < 0) state.currentTrack = 0;
-  const t = state.tracks[state.currentTrack];
-  // Use file:// path
-  dom.musicAudio.src = `file://${t.path.replace(/\\/g,'/')}`;
-  dom.musicAudio.volume = parseInt(dom.musicVolume.value) / 100;
-  dom.musicAudio.play().catch(e => console.warn('music play err', e));
-  state.musicPlaying = true;
-  dom.musicPlayPause.innerHTML = '⏸';
-  dom.musicNowPlaying.textContent = t.name.replace(/\.[^.]+$/, '');
-  renderTrackList();
-}
-
-function musicPause() {
-  dom.musicAudio.pause();
-  state.musicPlaying = false;
-  dom.musicPlayPause.innerHTML = '▶';
-}
-
-function musicToggle() { state.musicPlaying ? musicPause() : musicPlay(); }
-
-function musicPrev() {
-  if (!state.tracks.length) return;
-  state.currentTrack = (state.currentTrack - 1 + state.tracks.length) % state.tracks.length;
-  if (state.musicPlaying) musicPlay(); else { dom.musicNowPlaying.textContent = state.tracks[state.currentTrack].name.replace(/\.[^.]+$/,''); renderTrackList(); }
-}
-function musicNext() {
-  if (!state.tracks.length) return;
-  state.currentTrack = (state.currentTrack + 1) % state.tracks.length;
-  if (state.musicPlaying) musicPlay(); else { dom.musicNowPlaying.textContent = state.tracks[state.currentTrack].name.replace(/\.[^.]+$/,''); renderTrackList(); }
-}
-
 /* ── Events ── */
 function bindEvents() {
   dom.btnPlayPause.addEventListener('click', () => state.isRunning ? pauseTimer() : startTimer());
@@ -216,7 +159,7 @@ function bindEvents() {
   dom.modeTabs.forEach(t => t.addEventListener('click', () => { if (t.dataset.mode !== state.mode) switchMode(t.dataset.mode); }));
 
   dom.btnSettings.addEventListener('click', () => { state.settingsOpen = !state.settingsOpen; renderSettings(); });
-  dom.btnMusicToggle.addEventListener('click', () => { state.musicOpen = !state.musicOpen; if (state.musicOpen) loadTracks(); renderSettings(); });
+  dom.btnMusicToggle.addEventListener('click', () => { state.musicOpen = !state.musicOpen; renderSettings(); });
 
   dom.presetBtns.forEach(b => b.addEventListener('click', () => {
     state.activePreset = b.dataset.preset;
@@ -230,16 +173,8 @@ function bindEvents() {
 
   dom.toggleSound.addEventListener('change', () => { state.soundEnabled = dom.toggleSound.checked; });
 
-  // Music
-  dom.musicPlayPause.addEventListener('click', musicToggle);
-  dom.musicPrev.addEventListener('click', musicPrev);
-  dom.musicNext.addEventListener('click', musicNext);
-  dom.musicAudio.addEventListener('ended', musicNext);
-  dom.musicVolume.addEventListener('input', function() {
-    dom.musicAudio.volume = this.value / 100;
-    dom.musicVolLabel.textContent = `${this.value}%`;
-  });
-  dom.toggleAutoplay.addEventListener('change', () => { state.autoplay = dom.toggleAutoplay.checked; });
+  // Autoplay — toggle state; music-player.js listens to pomodoro:start
+  dom.toggleAutoplay?.addEventListener('change', () => { state.autoplay = dom.toggleAutoplay.checked; });
 
   document.addEventListener('keydown', e => {
     if (e.target.closest('#panel-notepad')) return;

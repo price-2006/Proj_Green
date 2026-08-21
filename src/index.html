@@ -153,29 +153,96 @@
         <!-- Music player panel -->
         <section class="settings-card glass-card" id="music-card">
           <div class="settings-inner">
-            <h2 class="settings-title">🎵 Music Player</h2>
-            <div id="music-track-info">
-              <p id="music-now-playing" class="music-now-playing">No track selected</p>
+            <h2 class="settings-title">Music Player</h2>
+
+            <!-- ── Setup panel (shown on first use) ── -->
+            <div id="music-setup-panel">
+              <div class="music-setup-icon">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+              </div>
+              <h3 class="music-setup-title">Connect Jamendo</h3>
+              <p class="music-setup-desc">Jamendo streams free, legal music. Get a free Client ID at <a href="#" id="music-jamendo-link">developer.jamendo.com</a> — it takes about 2 minutes.</p>
+              <div class="music-setup-row">
+                <input type="text" id="music-client-id-input" placeholder="Paste your Client ID here" autocomplete="off"/>
+              </div>
+              <button class="pill-btn primary" id="music-connect-btn" style="width:100%;margin-top:8px;">Connect</button>
+              <p class="music-connect-error" id="music-connect-error"></p>
             </div>
-            <div id="music-controls-row">
-              <button class="btn-icon" id="music-prev"  aria-label="Previous">&#9664;&#9664;</button>
-              <button class="btn-icon" id="music-playpause" aria-label="Play music">&#9654;</button>
-              <button class="btn-icon" id="music-next"  aria-label="Next">&#9654;&#9654;</button>
-            </div>
-            <div class="duration-row">
-              <div class="duration-row-header"><label for="music-volume">Volume</label><span class="duration-value" id="music-vol-label">70%</span></div>
-              <input type="range" id="music-volume" min="0" max="100" step="1" value="70"/>
-            </div>
-            <div id="music-list-wrapper">
-              <p class="settings-label">Tracks <span class="settings-hint">(add .mp3/.wav files to public/music/)</span></p>
+
+            <!-- ── Player panel (shown after auth) ── -->
+            <div id="music-player-panel" class="hidden">
+
+              <!-- Now playing -->
+              <div id="music-now-playing-row">
+                <img id="music-cover" class="music-cover" src="" alt="Album art" style="display:none;"/>
+                <div class="music-meta">
+                  <p id="music-now-playing" class="music-now-playing">No track selected</p>
+                  <p id="music-artist-label" class="music-artist-label"></p>
+                </div>
+              </div>
+
+              <!-- Progress bar -->
+              <div id="music-progress" class="music-progress" aria-label="Track progress">
+                <div id="music-progress-fill" class="music-progress-fill"></div>
+              </div>
+              <div class="music-time-row">
+                <span id="music-current-time" class="music-time">0:00</span>
+                <span id="music-total-time"   class="music-time">0:00</span>
+              </div>
+
+              <!-- Playback controls -->
+              <div id="music-controls-row">
+                <button class="btn-icon" id="music-prev" aria-label="Previous">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                </button>
+                <button class="btn-icon music-play-btn" id="music-playpause" aria-label="Play music">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                </button>
+                <button class="btn-icon" id="music-next" aria-label="Next">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                </button>
+              </div>
+
+              <!-- Volume -->
+              <div class="duration-row">
+                <div class="duration-row-header">
+                  <label for="music-volume">Volume</label>
+                  <span class="duration-value" id="music-vol-label">70%</span>
+                </div>
+                <input type="range" id="music-volume" min="0" max="100" step="1" value="70"/>
+              </div>
+
+              <!-- Genre chips -->
+              <div id="music-genre-chips" class="music-genre-chips"></div>
+
+              <!-- Search -->
+              <div class="music-search-wrap">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="music-search" placeholder="Search tracks or artists…" autocomplete="off"/>
+              </div>
+
+              <!-- Loading spinner -->
+              <div id="music-loading" style="display:none;" class="music-loading-state">
+                <div class="music-spinner"></div>
+                <span>Loading tracks…</span>
+              </div>
+
+              <!-- Track list -->
               <ul id="music-list" role="listbox" aria-label="Track list"></ul>
+
+              <!-- Autoplay toggle -->
+              <div class="toggle-row">
+                <label for="toggle-autoplay">Auto-play with timer</label>
+                <label class="toggle"><input type="checkbox" id="toggle-autoplay"/><span class="toggle-slider"></span></label>
+              </div>
+
+              <!-- Attribution -->
+              <p class="music-attribution">Music from <a href="#" id="music-jamendo-link-footer">Jamendo</a> — free &amp; licensed</p>
             </div>
-            <div class="toggle-row">
-              <label for="toggle-autoplay">Auto-play with timer</label>
-              <label class="toggle"><input type="checkbox" id="toggle-autoplay"/><span class="toggle-slider"></span></label>
-            </div>
+
           </div>
         </section>
+
       </div>
     </section>
 
@@ -302,7 +369,7 @@
           </div>
           <div class="drive-view-tabs" id="drive-view-tabs">
             <button class="drive-tab active" id="btn-tab-mydrive" data-view="mydrive">My Drive</button>
-            <button class="drive-tab" id="btn-tab-starred" data-view="starred">⭐ Starred</button>
+            <button class="drive-tab" id="btn-tab-starred" data-view="starred">Starred</button>
           </div>
           <button class="pill-btn" id="btn-drive-back" style="display:none;">Back</button>
           <button class="pill-btn" id="btn-drive-refresh">Refresh</button>
@@ -335,11 +402,11 @@
             <!-- Header -->
             <div class="chat-header">
               <div class="chat-header-left">
-                <div class="chat-gemini-icon" aria-hidden="true" style="font-size: 16px;">
-                  🦙
+                <div class="chat-gemini-icon" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M9 11V7a3 3 0 0 1 6 0v4"/><circle cx="9" cy="16" r="1" fill="currentColor"/><circle cx="15" cy="16" r="1" fill="currentColor"/></svg>
                 </div>
                 <span class="chat-header-title">Qwen2.5 Assistant</span>
-                <span class="chat-header-badge" id="chat-mode-badge" title="Connection mode">☁️ Cloud Run</span>
+                <span class="chat-header-badge" id="chat-mode-badge" title="Connection mode">Cloud Run</span>
               </div>
               <div style="display:flex;gap:4px;align-items:center;">
                 <button class="chat-clear-btn" id="btn-chat-settings" title="Change model / endpoint" aria-label="Settings">
@@ -353,7 +420,9 @@
 
             <!-- Ollama Setup (shown when no config saved, or settings opened) -->
             <div id="chat-key-setup" class="chat-key-setup hidden">
-              <div class="chat-key-icon" style="font-size: 32px;">🦙</div>
+              <div class="chat-key-icon">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M9 11V7a3 3 0 0 1 6 0v4"/><circle cx="9" cy="16" r="1" fill="currentColor"/><circle cx="15" cy="16" r="1" fill="currentColor"/></svg>
+              </div>
               <h3 class="chat-key-title">Connect Ollama</h3>
               <p class="chat-key-desc">Enter the model name and endpoint. Use localhost for local dev, or your Cloud Run URL for production.</p>
               <a href="#" id="chat-key-link" class="chat-key-link">Download Ollama →</a>
@@ -390,11 +459,13 @@
 
 <audio id="music-audio" preload="none"></audio>
 
+<script type="module" src="features/music/music-player-entry.js"></script>
 <script src="app.js"></script>
 <script src="features/pomodoro/pomodoro.js"></script>
 <script src="features/notepad/notepad.js"></script>
 <script src="features/planner/planner.js"></script>
 <script src="features/assistant/assistant.js"></script>
+<script src="config.js"></script>
 <script src="features/drive/drive.js"></script>
 </body>
 </html>

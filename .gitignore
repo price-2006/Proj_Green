@@ -9,13 +9,18 @@ build/
 # Electron cache
 .electron/
 
-# Environment files
+# Environment / secrets
 .env
 .env.local
+.env.*
+
+# App credentials (copy config.example.js → config.js and fill in your values)
+src/config.js
 
 # OS files
 .DS_Store
 Thumbs.db
+desktop.ini
 
 # Editor directories
 .vscode/
@@ -26,3 +31,15 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# User music files (personal content, not part of the project)
+public/music/*.mp3
+public/music/*.wav
+public/music/*.ogg
+public/music/*.flac
+public/music/*.aac
+
+# Electron userData (contains auth tokens — never commit)
+userData/

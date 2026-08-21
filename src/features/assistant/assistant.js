@@ -104,7 +104,7 @@ function createStreamBubble() {
     },
     /** Show an error inside the bubble */
     showError(msg) {
-      target.innerHTML = `<span class="stream-error">⚠️ ${msg}</span>`;
+      target.innerHTML = `<span class="stream-error">Error: ${msg}</span>`;
       el.classList.remove('streaming');
     },
   };
@@ -254,7 +254,7 @@ async function sendMessage() {
       if (streamBubble) {
         streamBubble.showError(e.message);
       } else {
-        appendMessage('ai', `⚠️ ${e.message}`);
+        appendMessage('ai', `Error: ${e.message}`);
       }
       console.error('Ollama stream error', e);
     }
@@ -290,10 +290,10 @@ function updateModeBadge() {
   const badge = document.getElementById('chat-mode-badge');
   if (!badge) return;
   if (ollamaEndpoint && ollamaEndpoint !== LOCAL_OLLAMA) {
-    badge.textContent = '☁️ Cloud Run';
+    badge.textContent = 'Cloud Run';
     badge.title = ollamaEndpoint;
   } else {
-    badge.textContent = '🖥️ Local';
+    badge.textContent = 'Local';
     badge.title = 'http://localhost:11434';
   }
 }
